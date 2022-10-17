@@ -1,23 +1,13 @@
-"""Base Integration for Cortex XSOAR (aka Demisto)
-
-This is an empty Integration with some basic structure according
-to the code conventions.
-
-MAKE SURE YOU REVIEW/REPLACE ALL THE COMMENTS MARKED AS "TODO"
-
-Developer Documentation: https://xsoar.pan.dev/docs/welcome
-Code Conventions: https://xsoar.pan.dev/docs/integrations/code-conventions
-Linting: https://xsoar.pan.dev/docs/integrations/linting
-
-This is an empty structure file. Check an example at;
-https://github.com/demisto/content/blob/master/Packs/HelloWorld/Integrations/HelloWorld/HelloWorld.py
-
+"""
+Integration Information:
+Contact: 
+API Documentation:
+EchoTrail:
 """
 
-import demistomock as demisto
 from CommonServerPython import *  # noqa # pylint: disable=unused-wildcard-import
 from CommonServerUserPython import *  # noqa
-
+import json
 import urllib3
 from typing import Dict, Any
 
@@ -42,23 +32,94 @@ class Client(BaseClient):
     For this  implementation, no special attributes defined
     """
 
-    # TODO: REMOVE the following dummy function:
-    def baseintegration_dummy(self, dummy: str) -> Dict[str, str]:
-        """Returns a simple python dict with the information provided
-        in the input (dummy).
-
-        :type dummy: ``str``
-        :param dummy: string to add in the dummy dict that is returned
-
-        :return: dict as {"dummy": dummy}
-        :rtype: ``str``
-        """
-
-        return {"dummy": dummy}
     # TODO: ADD HERE THE FUNCTIONS TO INTERACT WITH YOUR PRODUCT API
+    def echotrail_searchterm(self, searchTerm):
+        """
+        Get a  full summary of the requested filename or hash. The summary will contain similar
+            information to what can be found in a search on our website.
+
+        Args: 
+            searchTerm (str): Windows file name with extension (e.g. svchost.exe), SHA256 Hash or MD5 Hash
+        Raises:
+            e: _description_
+        Returns:
+            Description
+            EchoTrail Prevalence Score
+            Host Prevalence, Execution Rank
+            Top 20 Parents
+            Top 20 Children
+            top 20 Grandparents
+            Top 20 hashes/filenames
+            Top 20 Paths
+            Top 20 Network connection ports
+            Intel
+        """
+        response = self._http_request("GET", "insights/{}".format(searchTerm))
+        if 'message' in response:
+            return response['message']
+        else:
+            return response
+        
+    def echotrail_searchterm_field(self, searchTerm, field):
+        """
+        Get one particular field from the summary results. If you only need access to one field in
+        the above summary, use this resource as it will be much more efficient to fetch the one 
+        field you need.
+
+        Args:
+            searchTerm (str): Windows file name with extension (e.g. svchost.exe), SHA256 Hash or MD5 Hash
+            field (str): must be one of description, rank, host_prev, eps, parents, children, grandparents, 
+                hashes, paths, network, intel
+
+        Raises:
+            e: _description_
+            ValueError: _description_
+
+        Returns:
+            str: a field from the summary results
+        """
+        if field in {'description', 'rank', 'host_prev', 'eps', 'parents', 'children', 
+                     'grandparents', 'hashes', 'paths', 'network', 'intel'}:
+            response = self._http_request("GET", "insights/{}/{}".format(searchTerm, field))
+            if 'message' in response:
+                return response['message']
+            else:
+                return response[field]
+        else:
+            return "Invalid Field"
+
+    def echotrail_searchterm_field_subsearch(self, searchTerm, field, subsearch):
+        """For fields with a list of results, such as parents, this resource gives you the ability \
+        to subsearch that list. Subsearch can be any string to search for within the results of \
+        the field search. For example, when subsearching a list of parents, the subsearch string \
+        should be a filename with extension.
+
+        Args:
+            searchTerm (str): Windows file name with extension (e.g. svchost.exe), SHA256 Hash or MD5 Hash
+            field (str): must be one of description, rank, host_prev, eps, parents, children, grandparents,
+                \ hashes, paths, network, intel
+            subsearch (str): A substring to search for
+
+        Raises:
+            e: _description_
+            ValueError: _description_
+
+        Returns:
+            str: Value cooresponding to the key provided as subsearch 
+        """
+        if field in ['parents', 'children', 'grandparents', 'hashes', 'paths']:
+            response = self._http_request(self, "GET", "insights/{}/{}/{}".format(searchTerm, field, subsearch))
+            if 'message' in response:
+                return response['message']
+            else:
+                return response[subsearch]
+        else:
+            return "Invalid Field"
+        return response
 
 
 ''' HELPER FUNCTIONS '''
+
 
 # TODO: ADD HERE ANY HELPER FUNCTION YOU MIGHT NEED (if any)
 
@@ -84,31 +145,48 @@ def test_module(client: Client) -> str:
         # TODO: ADD HERE some code to test connectivity and authentication to your service.
         # This  should validate all the inputs given in the integration configuration panel,
         # either manually or by using an API that uses them.
-        message = 'ok'
+        response = client.echotrail_search("cmd.exe")['description']
+        if 'cmd.exe is the name' in response.lower():
+            demisto.results('ok')
     except DemistoException as e:
         if 'Forbidden' in str(e) or 'Authorization' in str(e):  # TODO: make sure you capture authentication errors
             message = 'Authorization Error: make sure API Key is correctly set'
         else:
-            raise e
-    return message
+            message = 'Could not connect to server'
+    finally:
+        return message
 
 
-# TODO: REMOVE the following dummy command function
-def baseintegration_dummy_command(client: Client, args: Dict[str, Any]) -> CommandResults:
-
-    dummy = args.get('dummy', None)
-    if not dummy:
-        raise ValueError('dummy not specified')
-
-    # Call the Client function and get the raw response
-    result = client.baseintegration_dummy(dummy)
-
+def echotrail_searchterm_command(client: Client, searchTerm: str) -> CommandResults:
+    result = client.echotrail_searchterm(searchTerm)
+    return CommandResults(
+        outputs_prefix='EchoTrail.SearchTerm',
+        outputs_key_field='' + searchTerm,
+        outputs=result,
+        raw_response=json.dumps(result)
+    )
+    
+    
+def echotrail_searchterm_field_command(client: Client, searchTerm: str, field: str) -> CommandResults:
+    result = client.echotrail_searchterm_field(searchTerm, field)
+    return CommandResults(
+        outputs_prefix='EchoTrail.SearchTerm',
+        outputs_key_field='' + searchTerm + '.' + field,
+        outputs=result
+    )
+    
+    
+def echotrail_searchterm_field_subsearch_command(client: Client, args: Dict[str, Any]) -> CommandResults:
+    searchTerm = args.get('searchTerm')
+    field = args.get('field')
+    subsearch = args.get('subsearch')
+    result = client.echotrail_searchterm_field_subsearch(searchTerm, field, subsearch)
+    
     return CommandResults(
         outputs_prefix='BaseIntegration',
         outputs_key_field='',
         outputs=result,
     )
-# TODO: ADD additional command functions that translate XSOAR inputs/outputs to Client
 
 
 ''' MAIN FUNCTION '''
@@ -116,48 +194,43 @@ def baseintegration_dummy_command(client: Client, args: Dict[str, Any]) -> Comma
 
 def main() -> None:
     """main function, parses params and runs command functions
-
-    :return:
-    :rtype:
     """
 
-    # TODO: make sure you properly handle authentication
     # api_key = demisto.params().get('credentials', {}).get('password')
-
-    # get the service API url
-    base_url = urljoin(demisto.params()['url'], '/api/v1')
-
-    # if your Client class inherits from BaseClient, SSL verification is
-    # handled out of the box by it, just pass ``verify_certificate`` to
-    # the Client constructor
-    verify_certificate = not demisto.params().get('insecure', False)
-
-    # if your Client class inherits from BaseClient, system proxy is handled
-    # out of the box by it, just pass ``proxy`` to the Client constructor
-    proxy = demisto.params().get('proxy', False)
+    params = demisto.params()
+    args = demisto.args()
+    command = demisto.command()
+    base_url = urljoin('https://api.echotrail.io/', '/v1/private')  # params.get('url'), '/v1/private/')
+    verify_certificate = False  # not argToBoolean(params('insecure', False))
+    #user_agent = ''
+    proxy = False  # not argToBoolean(params.get('proxy', False))
 
     demisto.debug(f'Command being called is {demisto.command()}')
     try:
 
         # TODO: Make sure you add the proper headers for authentication
         # (i.e. "Authorization": {api key})
-        headers: Dict = {}
+        # headers: Dict = {}
 
         client = Client(
             base_url=base_url,
             verify=verify_certificate,
-            headers=headers,
+            headers={'X-Api-key': params.get('apikey')},
             proxy=proxy)
 
         if demisto.command() == 'test-module':
             # This is the call made when pressing the integration Test button.
             result = test_module(client)
             return_results(result)
-
-        # TODO: REMOVE the following dummy command case:
-        elif demisto.command() == 'baseintegration-dummy':
-            return_results(baseintegration_dummy_command(client, demisto.args()))
-        # TODO: ADD command cases for the commands you will implement
+        elif command == 'echotrail_searchterm':
+            result = echotrail_searchterm_command(client, args)
+        elif command == 'echotrail_searchterm_field':
+            result = echotrail_searchterm_field_command(client, args)
+        elif command == 'echotrail_searchterm_field_subsearch_command':
+            result = echotrail_searchterm_field_subsearch_command(client, args)
+        else:
+            raise NotImplementedError(f'Command {command} is not implemented')
+        return_results(result)
 
     # Log exceptions and return errors
     except Exception as e:

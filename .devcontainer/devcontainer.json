@@ -43,7 +43,8 @@
 		"mikestead.dotenv",
 		"KevinRose.vsc-python-indent",
 		"rangav.vscode-thunder-client",
-		"ms-python.black-formatter"
+		"ms-python.black-formatter",
+		"CortexXSOARext.xsoar"
 	],
 	"remoteEnv": {
 		"LOCAL_WORKSPACE_PATH": "${localWorkspaceFolder}",
