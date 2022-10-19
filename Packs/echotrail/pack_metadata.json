@@ -3,26 +3,38 @@
     "description": "EchoTrail Insights data helps security analysts understand the big picture of how processes typically behave on Windows endpoints.",
     "support": "community",
     "currentVersion": "1.0.0",
-    "author": "Gabe Bouzard",
-    "url": "https://live.paloaltonetworks.com/t5/cortex-xsoar-discussions/bd-p/Cortex_XSOAR_Discussions",
-    "email": "",
+    "author": "Brian Concannon & Gabe Bouzard",
+    "url": "https://www.echotrail.io/products/insights/",
+    "email": "brian@echotrail.io",
     "categories": [
         "Data Enrichment & Threat Intelligence"
     ],
     "tags": [
         "Forensics",
         "Incident Response",
-	"Security Analytics", 
-	"Threat Intelligence"
+	    "Security Analytics", 
+	    "Threat Intelligence"
     ],
-    "useCases": [],
-    "keywords": [],
+    "useCases": [
+        "Analytics and SIEM",
+        "Data Enrichment & Threat Intelligence",
+        "Endpoint",
+        "Forensics and Malware Analysis"
+    ],
+    "keywords": [
+        "echotrail",
+        "Echo Trail",
+        "EchoTrail",
+        "endpoint",
+        "endpoint data",
+        "echotrail.io"
+    ],
     "marketplaces": [
         "xsoar",
         "marketplacev2"
     ],
     "devEmail": [
-        "gabrielbouzaard14@gmail.com"
+        "brian@echotrail.io"
     ],
     "githubUser": ["gbouzard"]
 }
