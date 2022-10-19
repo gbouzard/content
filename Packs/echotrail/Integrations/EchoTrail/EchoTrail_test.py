@@ -12,9 +12,8 @@ you are implementing with your integration
 
 import io
 import pytest
-#  from CommonServerPython import *
+from EchoTrail import ExecutionProfile
 import json
-#  from echotrail_unittest_test import test_echotrail_searchterm
 
 
 def util_load_json(path):
@@ -44,7 +43,7 @@ def test_echotrail_searchterm_field(searchterm, field, expected_response, mocker
     Args:
         searchterm (str): A field keyword to search with
     When:
-        field is one of 'description', 'rank', 'host_prev', 'eps', 'parents', 'children', 'grandparents', 
+        field is one of 'description', 'rank', 'host_prev', 'eps', 'parents', 'children', 'grandparents',
         'hashes', 'paths', 'network', 'intel'
     Then:
         validate that when the '/insights/{searchterm}/{field}' command is called and field is
@@ -55,7 +54,8 @@ def test_echotrail_searchterm_field(searchterm, field, expected_response, mocker
     client = Client(base_url='', headers={'X-Api-key': '<key>'})
     mocker.patch.object(Client, '_http_request', return_value=expected_response)
     expected_result = expected_response[field]
-    response = echotrail_searchterm_field_command(client, searchterm, field)
+    args = {'searchTerm': searchterm, 'field': field}
+    response = echotrail_searchterm_field_command(client, args)
     assert response.outputs == expected_result
 
 
@@ -76,7 +76,8 @@ def test_echotrail_searchterm_field_invalid_field(mocker):
     client = Client(base_url='', headers={'X-Api-key': '<key>'})
     mocker.patch.object(Client, '_http_request', return_value=util_load_json('test_data/echotrail_searchterm_invalid.json'))
     expected_result = util_load_json('test_data/echotrail_searchterm_invalid.json')['message']
-    response = echotrail_searchterm_field_command(client, 'svchost.exe', 'asdfjkl')
+    args = {'searchTerm': 'svchost.exe', 'field': 'asdfjkl'}
+    response = echotrail_searchterm_field_command(client, args)
     assert response.outputs == expected_result
     
     
@@ -91,31 +92,91 @@ def test_echotrail_searchterm_field_subsearch_invalid_field(mocker):
     """
     from EchoTrail import echotrail_searchterm_field_command
     from EchoTrail import Client
-    # client = Client(base_url='', headers={'X-Api-key': '<key>'})
+    client = Client(base_url='', headers={'X-Api-key': '<key>'})
     mocker.patch.object(Client, '_http_request', return_value=util_load_json('test_data/echotrail_searchterm_invalid.json'))
     return_value = util_load_json('test_data/echotrail_searchterm_invalid.json')['message']
-    response = echotrail_searchterm_field_command(client, 'svchost.exe', 'asdfjkl')
+    args = {'searchTerm': 'svchost.exe', 'field': 'asdfjkl'}
+    response = echotrail_searchterm_field_command(client, args)
     assert response.outputs == return_value
-    
+
+
 def test_echotrail_searchterm_field_subsearch(mocker):
     """Unit Test
     Given:
-    - a searchTerm to search with
-    - a field keyword to search with
-    - a subsearch keyword to look for
+        a searchTerm to search with
+        a field keyword to search with
+        a subsearch keyword to look for
     When:
-    - searchTerm normally returns results
-    - field keyword is valid, one of 'parents', 'children', 'grandparents', 'hashes', 'paths'
-    - and subsearch keyword exists in results
+        searchTerm normally returns results
+        field keyword is valid, one of 'parents', 'children', 'grandparents', 'hashes', 'paths'
+        and subsearch keyword exists in results
     Then:
-    - Validate the returned result
+        Validate the returned result
     """
     from EchoTrail import echotrail_searchterm_field_subsearch_command
     from EchoTrail import Client
     client = Client(base_url='', headers={'X-Api-key': '<key>'})
-    mocker.patch.object(Client, '_http_request', return_value=util_load_json('test_data/echotrail_searchterm_msmpeng.json'))
-    expected_result = util_load_json('test_data/echotrail_searchterm_msmpeng.json')['message']
-    response = echotrail_searchterm_field_subsearch_command(client, 'svchost.exe', 'myparents', 'msmpeng.exe')
+    mocker.patch.object(client, '_http_request', return_value=util_load_json(
+        'test_data/echotrail_searchterm_svchost_parents_services.json'))
+    expected_result = util_load_json('test_data/echotrail_searchterm_svchost_parents_services.json')
+    args = {'searchTerm': 'svchost.exe', 'field': 'parents', 'subsearch': 'services.exe'}
+    response = echotrail_searchterm_field_subsearch_command(client, args)
     assert response.outputs == expected_result
-    
-#  TODO: Tests for when subsearch term is not found
+
+
+def test_echotrail_score(mocker):
+    """Unit Test
+    Given:
+        All fields optional and mandatory
+    When:
+        Fields are properly formatted
+    Then:
+        Validate the returned result
+    """
+    from EchoTrail import echotrail_score_command
+    from EchoTrail import Client
+    client = Client(base_url='', headers={'X-Api-key': '<key>'})
+    mocker.patch.object(client, '_http_request', return_value=util_load_json('test_data/echotrail_score_cmd.json'))
+    expected_result = util_load_json('test_data/echotrail_score_cmd.json')
+    args = ExecutionProfile(hostname='hostname', image='C:\\Windows\\System32\\cmd.exe', 
+                            parent_image='C:\\Windows\\explorer.exe', 
+                            grandparent_image='C:\\Windows\\System32\\services.exe', 
+                            hash='ec436aeee41857eee5875efdb7166fe043349db5f58f3ee9fc4ff7f50005767f',
+                            parent_hash='ec436aeee41857eee5875efdb7166fe043349db5f58f3ee9fc4ff7f50005767f', 
+                            commandline='-q foo',
+                            children=['find.exe', 'calc.exe'],
+                            network_ports=[443, 80],
+                            environment='environment_a',
+                            record_execution=False
+                            )
+    response = echotrail_score_command(client, args)
+    assert response.outputs == expected_result
+
+
+def test_echotrail_score_some_fields(mocker):
+    """Unit Test
+    Given:
+        All fields mandatory, some of the optional fields
+    When:
+        Provided fields are properly formatted
+    Then:
+        Validate the returned result
+    """
+    from EchoTrail import echotrail_score_command
+    from EchoTrail import Client
+    from EchoTrail import ExecutionProfile
+    client = Client(base_url='', headers={'X-Api-key': '<key>'})
+    mocker.patch.object(client, '_http_request', return_value=util_load_json('test_data/echotrail_score_some_fields.json'))
+    expected_result = util_load_json('test_data/echotrail_score_some_fields.json')
+    args = ExecutionProfile(hostname='hostname', image='C:\\Windows\\System32\\cmd.exe', parent_image='C:\\Windows\\explorer.exe', 
+                            grandparent_image='', hash='ec436aeee41857eee5875efdb7166fe043349db5f58f3ee9fc4ff7f50005767f',
+                            parent_hash='', commandline='-q foo', children=["find.exe", "calc.exe"],
+                            network_ports=None, environment='environment_a', record_execution=False
+                            )
+    response = echotrail_score_command(client, args)
+    assert response.outputs == expected_result
+
+#  Test scoring call with mis-formatted field
+
+
+#  Test scoring call without image field

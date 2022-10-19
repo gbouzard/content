@@ -1,0 +1,3 @@
+feature - Added echotrail_score method(s), Unit Tests, and ExecutionProfile.py DataClass
+
+Add Demisto commands to support EchoTrail score endpoint: https://api.echotrail.io/score

@@ -63,3 +63,5 @@ Packs/**/report_pytest.json
 *.pem
 *.crt
 *.key
+
+commit-message-*

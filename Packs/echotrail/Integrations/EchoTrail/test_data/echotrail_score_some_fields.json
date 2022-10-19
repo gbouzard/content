@@ -1,0 +1,12 @@
+{
+    "echotrail_score": 64,
+    "global": {
+        "rank": 3,
+        "host_prev": 94.1,
+        "path_score": 98,
+        "hash_score": 54,
+        "parent_score": 40,
+        "children_score": 20,
+        "overall_score": 64
+    }
+}
