@@ -1,4 +1,4 @@
-category: Data Enrichment & Threat Intelligence
+category: "Data Enrichment & Threat Intelligence"
 commonfields:
   id: EchoTrail
   version: -1
@@ -25,6 +25,7 @@ configuration:
 description: '[Enter a comprehensive, yet concise, description of what the integration does, what use cases it is designed for, etc.]'
 display: 'EchoTrail'
 name: EchoTrail
+image: 
 script:
   commands:
   - arguments:
