@@ -16,10 +16,9 @@
 	    "Threat Intelligence"
     ],
     "useCases": [
-        "Analytics and SIEM",
-        "Data Enrichment & Threat Intelligence",
-        "Endpoint",
-        "Forensics and Malware Analysis"
+        "Hunting",
+        "Malware",
+        "Threat Intelligence Management"
     ],
     "keywords": [
         "echotrail",
