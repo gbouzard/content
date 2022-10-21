@@ -320,7 +320,6 @@ def main() -> None:
             demisto.results(result)
         elif command == 'echotrail_searchterm':
             result = echotrail_searchterm_command(client, args)
-            demisto.results(result)
         elif command == 'echotrail_searchterm_field':
             result = echotrail_searchterm_field_command(client, args)
             demisto.results(result.raw_response)
@@ -332,7 +331,7 @@ def main() -> None:
             result = echotrail_score_command(client, args)
             demisto.results(result.raw_response)
             raise NotImplementedError(f'Command {command} is not implemented')
-
+        return_results(result)
     # Log exceptions and return errors
     except Exception as e:
         return_error(f'Failed to execute {demisto.command()} command.\nError:\n{str(e)}')
