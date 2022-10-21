@@ -1,7 +1,7 @@
-name: EchoTrail33
+name: EchoTrail
 category: "Data Enrichment & Threat Intelligence"
 commonfields:
-  id: EchoTrail33
+  id: EchoTrail
   version: -1
 configuration:
 - display: ''
@@ -38,7 +38,7 @@ script:
       description: 'searchTerm must be one of: Windows filename with extension (i.e. svchost.exe), SHA256 Hash, MD5 Hash'
       deprecated: false
     outputs:
-    - contextPath: EchoTrail.SearchTerms.Term
+    - contextPath: EchoTrail.SearchTerm
       description: "The keyword i.e. search-term literal"
   isfetch: false
   runonce: false

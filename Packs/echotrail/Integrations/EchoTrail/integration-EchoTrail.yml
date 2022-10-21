@@ -1,0 +1,419 @@
+name: EchoTrail
+category: "Data Enrichment & Threat Intelligence"
+commonfields:
+  id: EchoTrail
+  version: -1
+configuration:
+- display: ''
+  displaypassword: api_key
+  name: api_key
+  required: true
+  type: 9
+  hiddenusername: true
+- display: Trust any certificate (not secure)
+  name: insecure
+  required: false
+  type: 8
+- display: Use system proxy settings
+  name: proxy
+  required: false
+  type: 8
+- display: Cache Requests
+  name: cache
+  required: false
+  type: 8
+- display: Record Execution
+  name: record_execution
+  type: 8
+  additionalinfo: "If the record_execution field is set to false (the default), we will not store any statistical data about your execution and will only be able to provide a global score, limiting the power of the scoring API. However, if you set that field to true, we will record statistical data about that execution, and we will send you more nuanced results based not only on the global statistics, but also on those in your environment. The more you use the scoring API with record_execution set to true, the better your results get."
+description: EchoTrail Insights data helps security analysts understand the big picture of how processes typically behave on Windows endpoints.
+display: EchoTrail (Community Contribution)
+image: data:image/png;base64,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
+script:
+  commands:
+  - name: 'echotrail_searchterm'
+    description: Get a full summary of the requested filename or hash. The summary will contain similar information to what can be found in a search on our website.
+    arguments:
+    - name: searchTerm
+      description: 'searchTerm must be one of: Windows filename with extension (i.e. svchost.exe), SHA256 Hash, MD5 Hash'
+      deprecated: false
+    outputs:
+    - contextPath: EchoTrail.SearchTerm
+      description: "The keyword i.e. search-term literal"
+  isfetch: false
+  runonce: false
+  script: >
+    register_module_line('EchoTrail', 'start', __line__())
+
+    """
+
+    Integration Information:
+
+    Contact:
+
+    API Documentation:
+
+    EchoTrail:
+
+    """
+
+
+
+
+
+    import json
+
+    import urllib3
+
+    from typing import Dict, Any
+
+
+    # Disable insecure warnings
+
+    urllib3.disable_warnings()
+
+
+
+    ''' CONSTANTS '''
+
+
+    DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'  # ISO8601 format with UTC, default in XSOAR
+
+
+
+    class ExecutionProfile:
+        def __init__(self, image: str, **kwargs: Any) -> None:
+            self.image = image
+            self.children = kwargs['children']
+            self.network_ports = kwargs['network_ports']
+            self.hostname = kwargs['hostname']
+            self.parent_image = kwargs['parent_image']
+            self.grandparent_image = kwargs['grandparent_image']
+            self.hash = kwargs['hash']
+            self.parent_hash = kwargs['parent_hash']
+            self.commandline = kwargs['commandline']
+            self.environment = kwargs['environment']
+            self.record_execution = kwargs['record_execution']
+
+
+    ''' CLIENT CLASS '''
+
+
+
+    class Client(BaseClient):
+        """Client class to interact with the service API
+
+        This Client implements API calls, and does not contain any XSOAR logic.
+        Should only do requests and return data.
+        It inherits from BaseClient defined in CommonServer Python.
+        Most calls use _http_request() that handles proxy, SSL verification, etc.
+        For this  implementation, no special attributes defined
+        """
+
+        # TODO: ADD HERE THE FUNCTIONS TO INTERACT WITH YOUR PRODUCT API
+        def echotrail_searchterm(self, searchTerm):
+            """
+            Get a  full summary of the requested filename or hash. The summary will contain similar
+                information to what can be found in a search on our website.
+
+            Args:
+                searchTerm (str): Windows file name with extension (e.g. svchost.exe), SHA256 Hash or MD5 Hash
+            Raises:
+                e: _description_
+            Returns:
+                Description
+                EchoTrail Prevalence Score
+                Host Prevalence, Execution Rank
+                Top 20 Parents
+                Top 20 Children
+                top 20 Grandparents
+                Top 20 hashes/filenames
+                Top 20 Paths
+                Top 20 Network connection ports
+                Intel
+            """
+            response = self._http_request("GET", "insights/{}".format(searchTerm))
+            if 'message' in response:
+                return response['message']
+            else:
+                return response
+
+        def echotrail_searchterm_field(self, searchTerm, field):
+            """
+            Get one particular field from the summary results. If you only need access to one field in
+            the above summary, use this resource as it will be much more efficient to fetch the one
+            field you need.
+
+            Args:
+                searchTerm (str): Windows file name with extension (e.g. svchost.exe), SHA256 Hash or MD5 Hash
+                field (str): must be one of description, rank, host_prev, eps, parents, children, grandparents,
+                    hashes, paths, network, intel
+
+            Raises:
+                e: _description_
+                ValueError: _description_
+
+            Returns:
+                str: a field from the summary results
+            """
+            if field in {'description', 'rank', 'host_prev', 'eps', 'parents', 'children',
+                         'grandparents', 'hashes', 'paths', 'network', 'intel'}:
+                response = self._http_request("GET", "insights/{}/{}".format(searchTerm, field))
+                if 'message' in response:
+                    return response['message']
+                else:
+                    return response[field]
+            else:
+                return "Invalid Field"
+
+        def echotrail_searchterm_field_subsearch(self, searchTerm, field, subsearch):
+            """For fields with a list of results, such as parents, this resource gives you the ability \
+            to subsearch that list. Subsearch can be any string to search for within the results of \
+            the field search. For example, when subsearching a list of parents, the subsearch string \
+            should be a filename with extension.
+
+            Args:
+                searchTerm (str): Windows file name with extension (e.g. svchost.exe), SHA256 Hash or MD5 Hash
+                field (str): must be one of description, rank, host_prev, eps, parents, children, grandparents,
+                    \ hashes, paths, network, intel
+                subsearch (str): A substring to search for
+
+            Raises:
+                e: _description_
+                ValueError: _description_
+
+            Returns:
+                str: Value cooresponding to the key provided as subsearch
+            """
+            if field in ['parents', 'children', 'grandparents', 'hashes', 'paths']:
+                response = self._http_request(self, "GET", "insights/{}/{}/{}".format(searchTerm, field, subsearch))
+                if 'message' in response:
+                    return response['message']
+                else:
+                    return response
+            else:
+                return "Invalid Field"
+            return response
+
+        def echotrail_score(self, image='', hostname='', parent_image='', grandparent_image='', hash='', parent_hash='',
+                            commandline='', children=None, network_ports=None, environment='', record_execution=''):
+            """Scores will be broken down into 4 categories, host, environment, customer and global, when
+            enough information is provided to calculate a score for each category. If an environment name
+            is not provided, the default environment will be used, and an environment score will not be
+            provided. Also, when individual fields, like grandparent, for example, are not provided, those
+            fields will be excluded from the scoring process and the scores will be dynamically adjusted to
+            account for only the fields provided.
+
+            Args:
+                image (str): If a hostname is provided, host-level scores will also be calculated
+                hostname (str): Image is the only required field. Ideally it should contain a full path and executable name.
+                parent_image (str): The parent path and executable name obvserved.
+                grandparent_image (str): The grandparent path and executable name observed.
+                hash (str): The SHA256 hash observed.
+                parent_hash (str): The SHA256 hash of the parent.
+                commandline (str): The commandline observed. Commandline scoring will be coming soon.
+                children (arr): Any children observed.
+                network_ports (arr): Any network connection ports observed.
+                environment (str): This field allows for segregation of statistics for different environments. It can be used for
+                    different network segments or customers. It is up to the user to determine if and how this field is used.
+                record_execution (bool): This field defaults to false as we don’t want to record a query as an actual real-world
+                    execution unless you specify that we should do so. Set this field to true for us to record the execution
+                    statistics.
+            """
+            if children is None:
+                children = []
+            if network_ports is None:
+                network_ports = []
+
+            payload = {
+                "image": image,
+                "hostname": hostname,
+                "parent_image": parent_image,
+                "grandparent_image": grandparent_image,
+                "hash": hash,
+                "parent_hash": parent_hash,
+                "commandline": commandline,
+                "children": children,
+                "network_ports": network_ports,
+                "environment": environment,
+                "record_execution": False
+            }
+            response = self._http_request(self, "POST", "score", json_data=json.dumps(payload))
+            return response
+
+
+    ''' HELPER FUNCTIONS '''
+
+
+
+    # TODO: ADD HERE ANY HELPER FUNCTION YOU MIGHT NEED (if any)
+
+
+    ''' COMMAND FUNCTIONS '''
+
+
+
+    def test_module(client: Client) -> str:
+        """Tests API connectivity and authentication'
+
+        Returning 'ok' indicates that the integration works like it is supposed to.
+        Connection to the service is successful.
+        Raises exceptions if something goes wrong.
+
+        :type client: ``Client``
+        :param Client: client to use
+
+        :return: 'ok' if test passed, anything else will fail the test.
+        :rtype: ``str``
+        """
+
+        message: str = ''
+        try:
+            # TODO: ADD HERE some code to test connectivity and authentication to your service.
+            # This  should validate all the inputs given in the integration configuration panel,
+            # either manually or by using an API that uses them.
+            response = client.echotrail_searchterm("cmd.exe")['description']
+            message = str(response)
+            if 'The Windows Command Prompt' in response:
+                message = 'ok'
+        except DemistoException as e:
+            if 'Forbidden' in str(e) or 'Authorization' in str(e):  # TODO: make sure you capture authentication errors
+                message = 'Authorization Error: make sure API Key is correctly set'
+            else:
+                message = 'Could not connect to server'
+        return message
+
+
+    def echotrail_searchterm_command(client: Client, args: Dict[str, Any]) -> CommandResults:
+        searchTerm = str(args['searchTerm'])
+        result = client.echotrail_searchterm(searchTerm)
+        return CommandResults(
+            outputs_prefix='EchoTrail.SearchTerm',
+            outputs_key_field=searchTerm,
+            outputs=result,
+            raw_response=json.dumps(result),
+            ignore_auto_extract=True
+        )
+
+
+    def echotrail_searchterm_field_command(client: Client, args: Dict[str, Any]) -> CommandResults:
+        searchTerm = str(args['searchTerm'])
+        field = str(args['field'])
+        result = client.echotrail_searchterm_field(searchTerm, field)
+        return CommandResults(
+            outputs_prefix='EchoTrail.SearchTerm',
+            outputs_key_field='' + searchTerm + '.' + field,
+            outputs=result
+        )
+
+
+    def echotrail_searchterm_field_subsearch_command(client: Client, args: Dict[str, Any]) -> CommandResults:
+        searchTerm = str(args['searchTerm'])
+        field = str(args['field'])
+        subsearch = str(args['subsearch'])
+
+        if (type(searchTerm) != str or type(field) != str or type(subsearch) != str):
+            return_error(
+                f"Failed to execute {'echotrail_searchterm_field_subsearch_command'} command. \
+                    Error: ['searchTerm', 'field', 'subsearch'] must be of type (str)")
+        else:
+            result = client.echotrail_searchterm_field_subsearch(searchTerm, field, subsearch)
+
+        return CommandResults(
+            outputs_prefix='BaseIntegration',
+            outputs_key_field='',
+            outputs=result,
+        )
+
+
+    def echotrail_score_command(client: Client, execution_profile: ExecutionProfile) -> CommandResults:
+        hostname = execution_profile.hostname
+        image = execution_profile.image
+        parent_image = execution_profile.parent_image
+        grandparent_image = execution_profile.grandparent_image
+        hash = execution_profile.hash
+        parent_hash = execution_profile.parent_hash
+        commandline = execution_profile.commandline
+        children = execution_profile.children
+        network_ports = execution_profile.network_ports
+        environment = execution_profile.environment
+        record_execution = execution_profile.record_execution
+
+        try:
+            result = client.echotrail_score(image, hostname, parent_image, grandparent_image, hash, parent_hash, commandline,
+                                            children, network_ports, environment, record_execution)
+            return CommandResults(
+                outputs_prefix='BaseIntegration',
+                outputs_key_field='',
+                outputs=result,
+            )
+        except Exception as e:
+            demisto.error("Failed to execute 'echotrail_score_command' command. Error: {}", {str(e)})
+            return CommandResults(
+                outputs_prefix=None,
+                outputs=result,
+            )
+
+
+    def main() -> None:
+        """
+        main function, parses params and runs command functions
+        """
+        api_key = demisto.getParam('api_key').get('password')
+        args = demisto.args()
+        command = demisto.command()
+        base_url = urljoin('https://api.echotrail.io/', '/v1/private')
+        verify_certificate = not argToBoolean(demisto.getParam('insecure'))
+        proxy = not argToBoolean(demisto.getParam('proxy'))
+
+        demisto.debug(f'Command being called is {demisto.command()}')
+        try:
+            # TODO: Make sure you add the proper headers for authentication
+            # (i.e. "Authorization": {api key})
+            # headers: Dict = {}
+
+            client = Client(
+                base_url=base_url,
+                verify=verify_certificate,
+                headers={'X-Api-key': api_key},
+                proxy=proxy)
+
+            if demisto.command() == 'test-module':
+                # This is the call made when pressing the integration Test button.
+                result = test_module(client)  # type: Optional[Any]
+                demisto.results(result)
+            elif command == 'echotrail_searchterm':
+                result = echotrail_searchterm_command(client, args)
+                demisto.results(result)
+            elif command == 'echotrail_searchterm_field':
+                result = echotrail_searchterm_field_command(client, args)
+                demisto.results(result.raw_response)
+            elif command == 'echotrail_searchterm_field_subsearch_command':
+                result = echotrail_searchterm_field_subsearch_command(client, args)
+                demisto.results(result.raw_response)
+            elif command == 'echotrail_score_command':
+                #  executionProfile = ExecutionProfile(args.get('image'), args.get('hostname'))# type: ExecutionProfile
+                result = echotrail_score_command(client, args)
+                demisto.results(result.raw_response)
+                raise NotImplementedError(f'Command {command} is not implemented')
+
+        # Log exceptions and return errors
+        except Exception as e:
+            return_error(f'Failed to execute {demisto.command()} command.\nError:\n{str(e)}')
+
+
+    ''' ENTRY POINT '''
+
+
+
+    if __name__ in ('__main__', '__builtin__', 'builtins'):
+        main()
+
+    register_module_line('EchoTrail', 'end', __line__())
+  type: python
+  subtype: python3
+  dockerimage: demisto/python3:3.10.8.35482
+fromversion: 6.5.0
+tests:
+- No tests (auto formatted)
+detaileddescription: "### Community Contributed Integration\n #### Integration Author: Brian Concannon & Gabe Bouzard\n No support or maintenance is provided by the author. Customers are encouraged to engage with the user community for questions and guidance at the [Cortex XSOAR Live Discussions](https://live.paloaltonetworks.com/t5/cortex-xsoar-discussions/bd-p/Cortex_XSOAR_Discussions).\n***\n## EchoTrail Integration Help\n\n- [Register here](https://echotrail.io/register/) for a free account to receive API Access - Free Tier. \n\n\n---\n[View Integration Documentation](https://xsoar.pan.dev/docs/reference/integrations/echo-trail)"

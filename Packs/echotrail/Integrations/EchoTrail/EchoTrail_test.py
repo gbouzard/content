@@ -175,8 +175,3 @@ def test_echotrail_score_some_fields(mocker):
                             )
     response = echotrail_score_command(client, args)
     assert response.outputs == expected_result
-
-#  Test scoring call with mis-formatted field
-
-
-#  Test scoring call without image field

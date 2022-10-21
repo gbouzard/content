@@ -44,7 +44,8 @@
 		"KevinRose.vsc-python-indent",
 		"rangav.vscode-thunder-client",
 		"ms-python.black-formatter",
-		"CortexXSOARext.xsoar"
+		"CortexXSOARext.xsoar",
+		"ms-vscode-remote.vscode-remote-extensionpack"
 	],
 	"remoteEnv": {
 		"LOCAL_WORKSPACE_PATH": "${localWorkspaceFolder}",

@@ -1,4 +1,3 @@
-register_module_line('EchoTrail33', 'start', __line__())
 """
 Integration Information:
 Contact:
@@ -6,11 +5,10 @@ API Documentation:
 EchoTrail:
 """
 
-
-
-
+import demistomock as demisto
+from CommonServerPython import *
+from CommonServerUserPython import *
 import json
-import sys, os
 import urllib3
 from typing import Dict, Any
 
@@ -227,9 +225,10 @@ def echotrail_searchterm_command(client: Client, args: Dict[str, Any]) -> Comman
     result = client.echotrail_searchterm(searchTerm)
     return CommandResults(
         outputs_prefix='EchoTrail.SearchTerm',
-        outputs_key_field='' + searchTerm,
+        outputs_key_field=searchTerm,
         outputs=result,
-        raw_response=json.dumps(result)
+        raw_response=json.dumps(result),
+        ignore_auto_extract=True
     )
 
 
@@ -297,7 +296,6 @@ def main() -> None:
     main function, parses params and runs command functions
     """
     api_key = demisto.getParam('api_key').get('password')
-    params = demisto.params()
     args = demisto.args()
     command = demisto.command()
     base_url = urljoin('https://api.echotrail.io/', '/v1/private')
@@ -322,7 +320,7 @@ def main() -> None:
             demisto.results(result)
         elif command == 'echotrail_searchterm':
             result = echotrail_searchterm_command(client, args)
-            demisto.results(result.raw_response)
+            demisto.results(result)
         elif command == 'echotrail_searchterm_field':
             result = echotrail_searchterm_field_command(client, args)
             demisto.results(result.raw_response)
@@ -345,5 +343,3 @@ def main() -> None:
 
 if __name__ in ('__main__', '__builtin__', 'builtins'):
     main()
-
-register_module_line('EchoTrail33', 'end', __line__())
