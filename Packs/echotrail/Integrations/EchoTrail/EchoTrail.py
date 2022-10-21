@@ -1,3 +1,4 @@
+register_module_line('EchoTrail33', 'start', __line__())
 """
 Integration Information:
 Contact:
@@ -5,10 +6,11 @@ API Documentation:
 EchoTrail:
 """
 
-import demistomock as demisto
-from CommonServerPython import *  # noqa # pylint: disable=unused-wildcard-import
-from CommonServerUserPython import *  # noqa
+
+
+
 import json
+import sys, os
 import urllib3
 from typing import Dict, Any
 
@@ -55,7 +57,7 @@ class Client(BaseClient):
         Get a  full summary of the requested filename or hash. The summary will contain similar
             information to what can be found in a search on our website.
 
-        Args: 
+        Args:
             searchTerm (str): Windows file name with extension (e.g. svchost.exe), SHA256 Hash or MD5 Hash
         Raises:
             e: _description_
@@ -80,12 +82,12 @@ class Client(BaseClient):
     def echotrail_searchterm_field(self, searchTerm, field):
         """
         Get one particular field from the summary results. If you only need access to one field in
-        the above summary, use this resource as it will be much more efficient to fetch the one 
+        the above summary, use this resource as it will be much more efficient to fetch the one
         field you need.
 
         Args:
             searchTerm (str): Windows file name with extension (e.g. svchost.exe), SHA256 Hash or MD5 Hash
-            field (str): must be one of description, rank, host_prev, eps, parents, children, grandparents, 
+            field (str): must be one of description, rank, host_prev, eps, parents, children, grandparents,
                 hashes, paths, network, intel
 
         Raises:
@@ -122,7 +124,7 @@ class Client(BaseClient):
             ValueError: _description_
 
         Returns:
-            str: Value cooresponding to the key provided as subsearch 
+            str: Value cooresponding to the key provided as subsearch
         """
         if field in ['parents', 'children', 'grandparents', 'hashes', 'paths']:
             response = self._http_request(self, "GET", "insights/{}/{}/{}".format(searchTerm, field, subsearch))
@@ -209,15 +211,15 @@ def test_module(client: Client) -> str:
         # This  should validate all the inputs given in the integration configuration panel,
         # either manually or by using an API that uses them.
         response = client.echotrail_searchterm("cmd.exe")['description']
-        if 'cmd.exe is the name' in response.lower():
-            demisto.results('ok')
+        message = str(response)
+        if 'The Windows Command Prompt' in response:
+            message = 'ok'
     except DemistoException as e:
         if 'Forbidden' in str(e) or 'Authorization' in str(e):  # TODO: make sure you capture authentication errors
             message = 'Authorization Error: make sure API Key is correctly set'
         else:
             message = 'Could not connect to server'
-    finally:
-        return message
+    return message
 
 
 def echotrail_searchterm_command(client: Client, args: Dict[str, Any]) -> CommandResults:
@@ -294,19 +296,16 @@ def main() -> None:
     """
     main function, parses params and runs command functions
     """
-
-    #  api_key = demisto.params().get('credentials', {}).get('password')
+    api_key = demisto.getParam('api_key').get('password')
     params = demisto.params()
     args = demisto.args()
     command = demisto.command()
-    base_url = urljoin('https://api.echotrail.io/', '/v1/private')  # params.get('url'), '/v1/private/')
-    verify_certificate = False  # not argToBoolean(params('insecure', False))
-    #  user_agent = ''
-    proxy = False  # not argToBoolean(params.get('proxy', False))
+    base_url = urljoin('https://api.echotrail.io/', '/v1/private')
+    verify_certificate = not argToBoolean(demisto.getParam('insecure'))
+    proxy = not argToBoolean(demisto.getParam('proxy'))
 
     demisto.debug(f'Command being called is {demisto.command()}')
     try:
-
         # TODO: Make sure you add the proper headers for authentication
         # (i.e. "Authorization": {api key})
         # headers: Dict = {}
@@ -314,23 +313,27 @@ def main() -> None:
         client = Client(
             base_url=base_url,
             verify=verify_certificate,
-            headers={'X-Api-key': params.get('apikey')},
+            headers={'X-Api-key': api_key},
             proxy=proxy)
 
         if demisto.command() == 'test-module':
             # This is the call made when pressing the integration Test button.
             result = test_module(client)  # type: Optional[Any]
+            demisto.results(result)
         elif command == 'echotrail_searchterm':
             result = echotrail_searchterm_command(client, args)
+            demisto.results(result.raw_response)
         elif command == 'echotrail_searchterm_field':
             result = echotrail_searchterm_field_command(client, args)
+            demisto.results(result.raw_response)
         elif command == 'echotrail_searchterm_field_subsearch_command':
             result = echotrail_searchterm_field_subsearch_command(client, args)
+            demisto.results(result.raw_response)
         elif command == 'echotrail_score_command':
             #  executionProfile = ExecutionProfile(args.get('image'), args.get('hostname'))# type: ExecutionProfile
             result = echotrail_score_command(client, args)
+            demisto.results(result.raw_response)
             raise NotImplementedError(f'Command {command} is not implemented')
-        return_results(result)
 
     # Log exceptions and return errors
     except Exception as e:
@@ -342,3 +345,5 @@ def main() -> None:
 
 if __name__ in ('__main__', '__builtin__', 'builtins'):
     main()
+
+register_module_line('EchoTrail33', 'end', __line__())

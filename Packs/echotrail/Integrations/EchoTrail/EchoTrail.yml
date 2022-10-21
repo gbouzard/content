@@ -1,10 +1,10 @@
-name: EchoTrail
+name: EchoTrail33
 category: "Data Enrichment & Threat Intelligence"
 commonfields:
-  id: EchoTrail
+  id: EchoTrail33
   version: -1
 configuration:
-- display: ""
+- display: ''
   displaypassword: api_key
   name: api_key
   required: true
@@ -31,7 +31,7 @@ display: EchoTrail
 image:
 script:
   commands:
-  - name: 'echotrail-searchterm'
+  - name: 'echotrail_searchterm'
     description: Get a full summary of the requested filename or hash. The summary will contain similar information to what can be found in a search on our website.
     arguments:
     - name: searchTerm
