@@ -239,7 +239,9 @@ def echotrail_searchterm_field_command(client: Client, args: Dict[str, Any]) -> 
     return CommandResults(
         outputs_prefix='EchoTrail.SearchTerm',
         outputs_key_field='' + searchTerm + '.' + field,
-        outputs=result
+        outputs=result,
+        raw_response=json.dumps(result),
+        ignore_auto_extract=True
     )
 
 
@@ -256,9 +258,11 @@ def echotrail_searchterm_field_subsearch_command(client: Client, args: Dict[str,
         result = client.echotrail_searchterm_field_subsearch(searchTerm, field, subsearch)
 
     return CommandResults(
-        outputs_prefix='BaseIntegration',
-        outputs_key_field='',
+        outputs_prefix='EchoTrail.SearchTerm',
+        outputs_key_field='' + searchTerm + '.' + field + '.' + subsearch,
         outputs=result,
+        raw_response=json.dumps(result),
+        ignore_auto_extract=True
     )
 
 
@@ -279,9 +283,11 @@ def echotrail_score_command(client: Client, execution_profile: ExecutionProfile)
         result = client.echotrail_score(image, hostname, parent_image, grandparent_image, hash, parent_hash, commandline,
                                         children, network_ports, environment, record_execution)
         return CommandResults(
-            outputs_prefix='BaseIntegration',
-            outputs_key_field='',
+            outputs_prefix='EchoTrail.Score',
+            outputs_key_field='' + image,
             outputs=result,
+            raw_response=json.dumps(result),
+            ignore_auto_extract=True
         )
     except Exception as e:
         demisto.error("Failed to execute 'echotrail_score_command' command. Error: {}", {str(e)})
@@ -322,7 +328,6 @@ def main() -> None:
             result = echotrail_searchterm_command(client, args)
         elif command == 'echotrail_searchterm_field':
             result = echotrail_searchterm_field_command(client, args)
-            demisto.results(result.raw_response)
         elif command == 'echotrail_searchterm_field_subsearch_command':
             result = echotrail_searchterm_field_subsearch_command(client, args)
             demisto.results(result.raw_response)
