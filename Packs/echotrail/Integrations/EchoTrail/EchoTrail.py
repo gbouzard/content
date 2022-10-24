@@ -101,7 +101,7 @@ class Client(BaseClient):
             if 'message' in response:
                 return response['message']
             else:
-                return response[field]
+                return response
         else:
             return "Invalid Field"
 
@@ -125,14 +125,13 @@ class Client(BaseClient):
             str: Value cooresponding to the key provided as subsearch
         """
         if field in ['parents', 'children', 'grandparents', 'hashes', 'paths']:
-            response = self._http_request(self, "GET", "insights/{}/{}/{}".format(searchTerm, field, subsearch))
+            response = self._http_request(self, str("GET"), "insights/{}/{}/{}".format(searchTerm, field, subsearch))
             if 'message' in response:
                 return response['message']
             else:
                 return response
         else:
             return "Invalid Field"
-        return response
 
     def echotrail_score(self, image='', hostname='', parent_image='', grandparent_image='', hash='', parent_hash='',
                         commandline='', children=None, network_ports=None, environment='', record_execution=''):
@@ -237,7 +236,7 @@ def echotrail_searchterm_field_command(client: Client, args: Dict[str, Any]) -> 
     field = str(args['field'])
     result = client.echotrail_searchterm_field(searchTerm, field)
     return CommandResults(
-        outputs_prefix='EchoTrail.SearchTerm',
+        outputs_prefix='EchoTrail.SearchTerm.Field',
         outputs_key_field='' + searchTerm + '.' + field,
         outputs=result,
         raw_response=json.dumps(result),
@@ -256,14 +255,25 @@ def echotrail_searchterm_field_subsearch_command(client: Client, args: Dict[str,
                 Error: ['searchTerm', 'field', 'subsearch'] must be of type (str)")
     else:
         result = client.echotrail_searchterm_field_subsearch(searchTerm, field, subsearch)
+        searchTerm = result[0]
+        prevelance = result[1]
+        subsearch_result = [
+            {
+                "SearchTerm": searchTerm,
+                "Prevelance": prevelance
+            }
+        ]
+        markdown = '### EchoTrail\n'
+        markdown += tableToMarkdown('SubSearch Results', subsearch_result, headers=['SearchTerm', 'Prevelance'])
 
-    return CommandResults(
-        outputs_prefix='EchoTrail.SearchTerm',
-        outputs_key_field='' + searchTerm + '.' + field + '.' + subsearch,
-        outputs=result,
-        raw_response=json.dumps(result),
-        ignore_auto_extract=True
-    )
+        return CommandResults(
+            outputs_prefix='EchoTrail.SearchTerm.Field',
+            outputs_key_field='' + searchTerm + '.' + field + '.' + subsearch,
+            readable_output=markdown,
+            outputs=result,
+            raw_response=json.dumps(result),
+            ignore_auto_extract=True
+        )
 
 
 def echotrail_score_command(client: Client, execution_profile: ExecutionProfile) -> CommandResults:
@@ -324,20 +334,18 @@ def main() -> None:
             # This is the call made when pressing the integration Test button.
             result = test_module(client)  # type: Optional[Any]
             demisto.results(result)
-        elif command == 'echotrail_searchterm':
+        elif command == 'echotrail-searchterm':
             result = echotrail_searchterm_command(client, args)
-        elif command == 'echotrail_searchterm_field':
+        elif command == 'echotrail-searchterm-field':
             result = echotrail_searchterm_field_command(client, args)
-        elif command == 'echotrail_searchterm_field_subsearch_command':
+        elif command == 'echotrail-searchterm-field-subsearch':
             result = echotrail_searchterm_field_subsearch_command(client, args)
-            demisto.results(result.raw_response)
-        elif command == 'echotrail_score_command':
-            #  executionProfile = ExecutionProfile(args.get('image'), args.get('hostname'))# type: ExecutionProfile
-            result = echotrail_score_command(client, args)
-            demisto.results(result.raw_response)
-            raise NotImplementedError(f'Command {command} is not implemented')
+        elif command == 'echotrail-score':
+            executionProfile = ExecutionProfile(image=args.get('image'), hostanme=args.get('hostname'))  # type: ExecutionProfile
+            result = echotrail_score_command(client, executionProfile)
+            #  raise NotImplementedError(f'Command {command} is not implemented')
+        # Log exceptions and return errors
         return_results(result)
-    # Log exceptions and return errors
     except Exception as e:
         return_error(f'Failed to execute {demisto.command()} command.\nError:\n{str(e)}')
 

@@ -31,7 +31,7 @@ display: EchoTrail
 image:
 script:
   commands:
-  - name: 'echotrail_searchterm'
+  - name: 'echotrail-searchterm'
     description: Get a full summary of the requested filename or hash. The summary will contain similar information to what can be found in a search on our website.
     arguments:
     - name: searchTerm
@@ -39,7 +39,77 @@ script:
       deprecated: false
     outputs:
     - contextPath: EchoTrail.SearchTerm
-      description: "The keyword i.e. search-term literal"
+      description: "The search-term literal"
+      type: String
+  - name: 'echotrail-searchterm-field'
+    description: "Get one particular field from the summary results. If you only need access to one field in the above summary, use this resource as it will be much more efficient to fetch the one field you need."   
+    arguments:
+    - name: searchTerm
+      description: 'searchTerm must be one of: Windows filename with extension (i.e. svchost.exe), SHA256 Hash, MD5 Hash'
+      deprecated: false
+    - name: field
+      description: 'field must be one of: description, rank, host_prev, eps, parents, children, grandparents, hashes, paths, network, intel'
+      deprecated: false
+    outputs:
+    - contextPath: EchoTrail.SearchTerm.Field
+      description: "The field keyword"
+      type: String
+  - name: 'echotrail-searchterm-field-subsearch'
+    description: "For fields with a list of results, such as parents, this resource gives you the ability to subsearch that list."
+    arguments:
+    - name: searchTerm
+      description: 'searchTerm must be one of: Windows filename with extension (i.e. svchost.exe), SHA256 Hash, MD5 Hash'
+      deprecated: false
+    - name: field
+      description: 'field must be one of: parents, children, grandparents, hashes, paths to be subsearched.'
+      deprecated: false
+    - name: subsearch
+      description: 'The subsearch field keyword'
+      deprecated: false
+    outputs:
+    - contextPath: EchoTrail.SearchTerm.Field.SubSearch
+      description: "The subsearch field subsearch keyword"
+      type: String
+  - name: 'echotrail-score'
+    description: "calculate a score based on how normal or abnormal that execution event is compared to other executions EchoTrail has seen"
+    arguments:
+    - name: hostname
+      description: 'If a hostname is provided, host-level scores will also be calculated'
+      deprecated: false
+    - name: image
+      description: 'Image is the only required field. Ideally it should contain a full path and executable name.'
+      deprecated: false
+    - name: parent_image
+      description: 'The parent path and executable name obvserved.'
+      deprecated: false
+    - name: grandparent_image
+      description: 'The grandparent path and executable name observed.'
+      deprecated: false
+    - name: hash
+      description: 'The SHA256 hash observed.'
+      deprecated: false
+    - name: parent_hash
+      description: 'The SHA256 hash of the parent.'
+      deprecated: false
+    - name: commandline
+      description: 'The commandline observed. Commandline scoring will be coming soon.'
+      deprecated: false
+    - name: children
+      description: 'Any children obvserved.'
+      deprecated: false
+    - name: network_ports
+      description: 'Any network connection ports observed.'
+      deprecated: false
+    - name: environment
+      description: 'This field allows for segregation of statistics for different environments. It can be used for different network segments or customers. It is up to the user to determine if and how this field is used.'
+      deprecated: false
+    - name: record_execution
+      description: "This field defaults to false as we don't want to record a query as an actual real world execution unless you specify that we should do so. Set this field to true for us to record the execution statistic."
+      deprecated: false
+    outputs:
+    - contextPath: EchoTrail.Score
+      description: "The score response"
+      type: String
   isfetch: false
   runonce: false
   script: '-'
