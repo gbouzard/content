@@ -60,13 +60,13 @@ def test_echotrail_searchterm_field(searchterm, field, expected_response, mocker
 
 
 def test_echotrail_searchterm_field_invalid_field(mocker):
-    """Unit Test 
+    """Unit Test
     Given:
     - A field keyword to search with
         Args:
             mocker (str): searchTerm
     When:
-    - Field keyword is invalid, not one of 'description', 'rank' 'host_prev', 'eps', 
+    - Field keyword is invalid, not one of 'description', 'rank' 'host_prev', 'eps',
       'parents', 'childern', 'grandparents', 'hashes', 'paths', 'network', 'intel'
     Then:
     - Validate the returned result is "Invalid Field"
@@ -79,8 +79,8 @@ def test_echotrail_searchterm_field_invalid_field(mocker):
     args = {'searchTerm': 'svchost.exe', 'field': 'asdfjkl'}
     response = echotrail_searchterm_field_command(client, args)
     assert response.outputs == expected_result
-    
-    
+
+
 def test_echotrail_searchterm_field_subsearch_invalid_field(mocker):
     """Unit Test
     Given:
@@ -138,11 +138,11 @@ def test_echotrail_score(mocker):
     client = Client(base_url='', headers={'X-Api-key': '<key>'})
     mocker.patch.object(client, '_http_request', return_value=util_load_json('test_data/echotrail_score_cmd.json'))
     expected_result = util_load_json('test_data/echotrail_score_cmd.json')
-    args = ExecutionProfile(hostname='hostname', image='C:\\Windows\\System32\\cmd.exe', 
-                            parent_image='C:\\Windows\\explorer.exe', 
-                            grandparent_image='C:\\Windows\\System32\\services.exe', 
+    args = ExecutionProfile(hostname='hostname', image='C:\\Windows\\System32\\cmd.exe',
+                            parent_image='C:\\Windows\\explorer.exe',
+                            grandparent_image='C:\\Windows\\System32\\services.exe',
                             hash='ec436aeee41857eee5875efdb7166fe043349db5f58f3ee9fc4ff7f50005767f',
-                            parent_hash='ec436aeee41857eee5875efdb7166fe043349db5f58f3ee9fc4ff7f50005767f', 
+                            parent_hash='ec436aeee41857eee5875efdb7166fe043349db5f58f3ee9fc4ff7f50005767f',
                             commandline='-q foo',
                             children=['find.exe', 'calc.exe'],
                             network_ports=[443, 80],
@@ -168,7 +168,7 @@ def test_echotrail_score_some_fields(mocker):
     client = Client(base_url='', headers={'X-Api-key': '<key>'})
     mocker.patch.object(client, '_http_request', return_value=util_load_json('test_data/echotrail_score_some_fields.json'))
     expected_result = util_load_json('test_data/echotrail_score_some_fields.json')
-    args = ExecutionProfile(hostname='hostname', image='C:\\Windows\\System32\\cmd.exe', parent_image='C:\\Windows\\explorer.exe', 
+    args = ExecutionProfile(hostname='hostname', image='C:\\Windows\\System32\\cmd.exe', parent_image='C:\\Windows\\explorer.exe',
                             grandparent_image='', hash='ec436aeee41857eee5875efdb7166fe043349db5f58f3ee9fc4ff7f50005767f',
                             parent_hash='', commandline='-q foo', children=["find.exe", "calc.exe"],
                             network_ports=None, environment='environment_a', record_execution=False
