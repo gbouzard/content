@@ -52,11 +52,11 @@ def test_echotrail_searchterm_field(searchterm, field, expected_response, mocker
     from EchoTrail import echotrail_searchterm_field_command
     from EchoTrail import Client
     client = Client(base_url='', headers={'X-Api-key': '<key>'})
-    mocker.patch.object(Client, '_http_request', return_value=expected_response)
+    mocker.patch.object(client, '_http_request', return_value=expected_response)
     expected_result = expected_response[field]
     args = {'searchTerm': searchterm, 'field': field}
     response = echotrail_searchterm_field_command(client, args)
-    assert response.outputs == expected_result
+    assert response.outputs[field] == expected_result
 
 
 def test_echotrail_searchterm_field_invalid_field(mocker):

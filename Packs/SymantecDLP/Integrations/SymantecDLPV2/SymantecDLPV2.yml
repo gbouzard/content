@@ -49,6 +49,10 @@ configuration:
   - High
   required: false
   type: 16
+- display: Session Timeout
+  name: rtimeout
+  required: false
+  type: 0
 - display: Trust any certificate (not secure)
   name: insecure
   required: false
@@ -376,8 +380,7 @@ script:
         description: The full path on the file share, server, or SQL database that was scanned.
         type: String
       - contextPath: SymantecDLP.Incident.discoverMillisSinceFirstSeen
-        description: 'The time from the first incident generated, by the same policy on the same file, or resource using
-        Discover detection, up to the detection time of the current incident.'
+        description: 'The time from the first incident generated, by the same policy on the same file, or resource using Discover detection, up to the detection time of the current incident.'
         type: Number
       - contextPath: SymantecDLP.Incident.isBlockedStatusSuperseded
         description: Specifies whether the incident response was superseded by another response.

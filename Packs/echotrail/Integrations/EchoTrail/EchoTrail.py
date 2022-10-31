@@ -71,11 +71,8 @@ class Client(BaseClient):
             Top 20 Network connection ports
             Intel
         """
-        response = self._http_request("GET", "insights/{}".format(searchTerm))
-        if 'message' in response:
-            return response['message']
-        else:
-            return response
+        response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
+        return response
 
     def echotrail_searchterm_field(self, searchTerm, field):
         """
@@ -97,11 +94,8 @@ class Client(BaseClient):
         """
         if field in {'description', 'rank', 'host_prev', 'eps', 'parents', 'children',
                      'grandparents', 'hashes', 'paths', 'network', 'intel'}:
-            response = self._http_request("GET", "insights/{}/{}".format(searchTerm, field))
-            if 'message' in response:
-                return response['message']
-            else:
-                return response
+            response = self._http_request("GET", "v1/private/insights/{}/{}".format(searchTerm, field))
+            return response
         else:
             return "Invalid Field"
 
@@ -125,11 +119,8 @@ class Client(BaseClient):
             str: Value cooresponding to the key provided as subsearch
         """
         if field in ['parents', 'children', 'grandparents', 'hashes', 'paths']:
-            response = self._http_request(self, str("GET"), "insights/{}/{}/{}".format(searchTerm, field, subsearch))
-            if 'message' in response:
-                return response['message']
-            else:
-                return response
+            response = self._http_request("GET", "v1/private/insights/{}/{}/{}".format(searchTerm, field, subsearch))
+            return response
         else:
             return "Invalid Field"
 
@@ -158,26 +149,30 @@ class Client(BaseClient):
                 execution unless you specify that we should do so. Set this field to true for us to record the execution
                 statistics.
         """
-        if children is None:
-            children = []
-        if network_ports is None:
-            network_ports = []
+        try:
+            if children is None:
+                children = []
+            if network_ports is None:
+                network_ports = []
 
-        payload = {
-            "image": image,
-            "hostname": hostname,
-            "parent_image": parent_image,
-            "grandparent_image": grandparent_image,
-            "hash": hash,
-            "parent_hash": parent_hash,
-            "commandline": commandline,
-            "children": children,
-            "network_ports": network_ports,
-            "environment": environment,
-            "record_execution": False
-        }
-        response = self._http_request(self, "POST", "score", json_data=json.dumps(payload))
-        return response
+            payload = {
+                "image": image,
+                "hostname": hostname,
+                "parent_image": parent_image,
+                "grandparent_image": grandparent_image,
+                "hash": hash,
+                "parent_hash": parent_hash,
+                "commandline": commandline,
+                "children": children,
+                "network_ports": network_ports,
+                "environment": environment,
+                "record_execution": False
+            }
+
+            response = self._http_request(method="POST", url_suffix="score", data=json.dumps(payload))
+            return response
+        except Exception as e:
+            return_error(f'Failed to execute {demisto.command()} command. Error: {str(e)}')
 
 
 ''' HELPER FUNCTIONS '''
@@ -221,9 +216,10 @@ def test_module(client: Client) -> str:
 
 def echotrail_searchterm_command(client: Client, args: Dict[str, Any]) -> CommandResults:
     searchTerm = str(args['searchTerm'])
+    searchTermPrefix = searchTerm.replace('.', '_')
     result = client.echotrail_searchterm(searchTerm)
     return CommandResults(
-        outputs_prefix='EchoTrail.SearchTerm',
+        outputs_prefix='EchoTrail.SearchTerm.' + searchTermPrefix,
         outputs_key_field=searchTerm,
         outputs=result,
         raw_response=json.dumps(result),
@@ -233,43 +229,51 @@ def echotrail_searchterm_command(client: Client, args: Dict[str, Any]) -> Comman
 
 def echotrail_searchterm_field_command(client: Client, args: Dict[str, Any]) -> CommandResults:
     searchTerm = str(args['searchTerm'])
+    searchTermPrefix = searchTerm.replace('.', '_')
     field = str(args['field'])
     result = client.echotrail_searchterm_field(searchTerm, field)
     return CommandResults(
-        outputs_prefix='EchoTrail.SearchTerm.Field',
-        outputs_key_field='' + searchTerm + '.' + field,
+        outputs_prefix='EchoTrail.Field.' + searchTermPrefix,
+        outputs_key_field=searchTerm,
         outputs=result,
         raw_response=json.dumps(result),
         ignore_auto_extract=True
     )
 
 
-def echotrail_searchterm_field_subsearch_command(client: Client, args: Dict[str, Any]) -> CommandResults:
+def echotrail_searchterm_field_subsearch_command(client: Client, args: Dict[str, Any]):
     searchTerm = str(args['searchTerm'])
+    searchTermPrefix = searchTerm.replace('.', '_')
     field = str(args['field'])
     subsearch = str(args['subsearch'])
+    subsearchPrefix = subsearch.replace('.', '_')
 
     if (type(searchTerm) != str or type(field) != str or type(subsearch) != str):
-        return_error(
-            f"Failed to execute {'echotrail_searchterm_field_subsearch_command'} command. \
+        return_error(f"Failed to execute {'echotrail_searchterm_field_subsearch_command'} command. \
                 Error: ['searchTerm', 'field', 'subsearch'] must be of type (str)")
+
     else:
         result = client.echotrail_searchterm_field_subsearch(searchTerm, field, subsearch)
-        searchTerm = result[0]
-        prevelance = result[1]
-        subsearch_result = [
-            {
-                "SearchTerm": searchTerm,
-                "Prevelance": prevelance
-            }
-        ]
-        markdown = '### EchoTrail\n'
-        markdown += tableToMarkdown('SubSearch Results', subsearch_result, headers=['SearchTerm', 'Prevelance'])
+        readable_out = ""
+        if isinstance(result, list):
+            searchTerm = result[0]
+            prevelance = result[1]
+            subsearch_result = [
+                {
+                    "SearchTerm": searchTerm,
+                    "Prevelance": prevelance
+                }
+            ]
+            markdown = '### EchoTrail\n'
+            markdown += tableToMarkdown('SubSearch Results', subsearch_result, headers=['SearchTerm', 'Prevelance'])
+            readable_out += markdown
+        else:
+            readable_out += "No results found."
 
         return CommandResults(
-            outputs_prefix='EchoTrail.SearchTerm.Field',
-            outputs_key_field='' + searchTerm + '.' + field + '.' + subsearch,
-            readable_output=markdown,
+            outputs_prefix='EchoTrail.Field.' + searchTermPrefix + '.SubSearch.' + subsearchPrefix,
+            outputs_key_field=searchTerm,
+            readable_output=readable_out,
             outputs=result,
             raw_response=json.dumps(result),
             ignore_auto_extract=True
@@ -281,7 +285,7 @@ def echotrail_score_command(client: Client, execution_profile: ExecutionProfile)
     image = execution_profile.image
     parent_image = execution_profile.parent_image
     grandparent_image = execution_profile.grandparent_image
-    hash = execution_profile.hash
+    hash = execution_profile.hash  # type: str
     parent_hash = execution_profile.parent_hash
     commandline = execution_profile.commandline
     children = execution_profile.children
@@ -314,7 +318,7 @@ def main() -> None:
     api_key = demisto.getParam('api_key').get('password')
     args = demisto.args()
     command = demisto.command()
-    base_url = urljoin('https://api.echotrail.io/', '/v1/private')
+    base_url = 'https://api.echotrail.io/'
     verify_certificate = not argToBoolean(demisto.getParam('insecure'))
     proxy = not argToBoolean(demisto.getParam('proxy'))
 
@@ -341,7 +345,18 @@ def main() -> None:
         elif command == 'echotrail-searchterm-field-subsearch':
             result = echotrail_searchterm_field_subsearch_command(client, args)
         elif command == 'echotrail-score':
-            executionProfile = ExecutionProfile(image=args.get('image'), hostanme=args.get('hostname'))  # type: ExecutionProfile
+            executionProfile = ExecutionProfile(image=args.get('image'),
+                                                children=args.get('children'),
+                                                network_ports=args.get('network_ports'),
+                                                hostname=args.get('hostname'),
+                                                parent_image=args.get('parent_image'),
+                                                grandparent_image=args.get('grandparent_image'),
+                                                ehash=args.get('hash'),
+                                                parent_hash=args.get('parent_hash'),
+                                                commandline=args.get('commandline'),
+                                                environment=args.get('environment'),
+                                                record_execution=args.get('record_execution')
+                                                )  # type: ExecutionProfile
             result = echotrail_score_command(client, executionProfile)
             #  raise NotImplementedError(f'Command {command} is not implemented')
         # Log exceptions and return errors

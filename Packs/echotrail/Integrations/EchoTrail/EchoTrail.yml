@@ -79,6 +79,7 @@ script:
     - name: image
       description: 'Image is the only required field. Ideally it should contain a full path and executable name.'
       deprecated: false
+      required: true
     - name: parent_image
       description: 'The parent path and executable name obvserved.'
       deprecated: false

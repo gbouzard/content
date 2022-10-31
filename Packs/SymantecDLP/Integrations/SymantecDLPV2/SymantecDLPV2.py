@@ -123,8 +123,9 @@ class Client(BaseClient):
                                        filter_value=incident_type, operator="IN"))
 
         headers = self._headers
+        rtimeout = int(demisto.params().get('rtimeout'))
         response = self._http_request(method='POST', url_suffix='/ProtectManager/webservices/v2/incidents',
-                                      json_data=data, headers=headers)
+                                      json_data=data, headers=headers, timeout=rtimeout)
         return response
 
     def update_incident_request(self, update_body: Dict[str, Any]) -> Dict[str, str]:
@@ -134,9 +135,9 @@ class Client(BaseClient):
         """
 
         headers = self._headers
-
+        rtimeout = int(demisto.params().get('rtimeout'))
         response = self._http_request(method='PATCH', url_suffix='/ProtectManager/webservices/v2/incidents',
-                                      headers=headers, json_data=update_body)
+                                      headers=headers, json_data=update_body, timeout=rtimeout)
 
         return response
 
@@ -148,9 +149,10 @@ class Client(BaseClient):
         """
 
         headers = self._headers
+        rtimeout = int(demisto.params().get('rtimeout'))
         response = self._http_request(method='GET', url_suffix=f'/ProtectManager/webservices/'
                                                                f'v2/incidents/{incident_id}/staticAttributes',
-                                      headers=headers)
+                                      headers=headers, timeout=rtimeout)
 
         return response
 
@@ -162,9 +164,10 @@ class Client(BaseClient):
         """
 
         headers = self._headers
+        rtimeout = int(demisto.params().get('rtimeout'))
         response = self._http_request(method='GET', url_suffix=f'/ProtectManager/webservices/'
                                                                f'v2/incidents/{incident_id}/editableAttributes',
-                                      headers=headers)
+                                      headers=headers, timeout=rtimeout)
 
         return response
 
@@ -173,8 +176,9 @@ class Client(BaseClient):
         """
 
         headers = self._headers
+        rtimeout = int(demisto.params().get('rtimeout'))
         response = self._http_request(method='GET', url_suffix='/ProtectManager/webservices/v2/incidents/statuses',
-                                      headers=headers)
+                                      headers=headers, timeout=rtimeout)
 
         return response
 
@@ -186,8 +190,9 @@ class Client(BaseClient):
         """
 
         headers = self._headers
+        rtimeout = int(demisto.params().get('rtimeout'))
         response = self._http_request(method='GET', url_suffix=f'/ProtectManager/webservices/v2/incidents/'
-                                                               f'{incident_id}/history', headers=headers)
+                                                               f'{incident_id}/history', headers=headers, timeout=rtimeout)
 
         return response
 
@@ -196,8 +201,9 @@ class Client(BaseClient):
         """
 
         headers = self._headers
+        rtimeout = int(demisto.params().get('rtimeout'))
         response = self._http_request(method='GET', url_suffix='/ProtectManager/webservices/v2/incidents/'
-                                                               'protectOrPreventStatuses', headers=headers)
+                                                               'protectOrPreventStatuses', headers=headers, timeout=rtimeout)
 
         return response
 
