@@ -8,8 +8,11 @@ EchoTrail:
 import demistomock as demisto
 from CommonServerPython import *
 from CommonServerUserPython import *
+import inspect
+from datetime import datetime
 import json
 import urllib3
+import ast
 from typing import Dict, Any
 
 # Disable insecure warnings
@@ -49,6 +52,40 @@ class Client(BaseClient):
     For this  implementation, no special attributes defined
     """
 
+    def __is_expired_cache_entry(self, **kwargs):
+        calling_method = inspect.stack()[1][3]
+        cache_hours = demisto.getParam('cache_hours')
+        try:
+            cache_hours = int(cache_hours)
+            if cache_hours <= 0:
+                cache_hours = 0
+            elif cache_hours > 74:
+                cache_hours = 74
+        except Exception:
+            return_error('Failed to execute command. Error: Hours to Cache in configuration parameters must be an integer.')
+
+        NUMBER_OF_SECONDS = cache_hours * 3600
+        if 'echotrail_searchterm' == calling_method:
+            integration_context = get_integration_context()
+            integration_context_entry = integration_context[kwargs['search_term']]
+            now = datetime.now()
+            timestamp = datetime.strptime(integration_context_entry['timestamp'], DATE_FORMAT)
+            if (timestamp - now).total_seconds() > NUMBER_OF_SECONDS:
+                #  delete cache entry and return True
+                integration_context.pop(kwargs['search_term'])
+                return True
+            else:
+                return False
+
+    def __cache_response(self, **kwargs):
+        time = datetime.now()
+        if kwargs['cache_type'] == 'searchTerm':
+            integration_context_to_set = {kwargs['search_term']: {
+                "timestamp": time.strftime(DATE_FORMAT),
+                "results": str(kwargs['resp'])
+            }}
+        set_integration_context(integration_context_to_set)
+
     # TODO: ADD HERE THE FUNCTIONS TO INTERACT WITH YOUR PRODUCT API
     def echotrail_searchterm(self, searchTerm):
         """
@@ -71,8 +108,28 @@ class Client(BaseClient):
             Top 20 Network connection ports
             Intel
         """
-        response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
-        return response
+        #  Check cache for previous queries
+        integration_context: Dict = get_integration_context()
+        #  Query not cached
+        if (bool(demisto.getParam('cache')) is False) or (searchTerm not in integration_context):
+            response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
+            self.__cache_response(cache_type="searchTerm", search_term=searchTerm, resp=response)
+            return response
+        else:
+            #  Query cached
+            try:
+                #  Check if cached entry is expired
+                expired = self.__is_expired_cache_entry(search_term=searchTerm)
+                if expired is True:
+                    # Remove expired entry from cache
+                    integration_context.pop(searchTerm)
+                    response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
+                    self.__cache_response(cache_type="searchTerm", search_term=searchTerm, resp=response)
+                    return response
+                else:
+                    return ast.literal_eval(integration_context[searchTerm]["results"])
+            except Exception as e:
+                demisto.results(str(e))
 
     def echotrail_searchterm_field(self, searchTerm, field):
         """
@@ -231,9 +288,10 @@ def echotrail_searchterm_field_command(client: Client, args: Dict[str, Any]) -> 
     searchTerm = str(args['searchTerm'])
     searchTermPrefix = searchTerm.replace('.', '_')
     field = str(args['field'])
+    #  fieldPrefix = field.replace('.', '_')
     result = client.echotrail_searchterm_field(searchTerm, field)
     return CommandResults(
-        outputs_prefix='EchoTrail.Field.' + searchTermPrefix,
+        outputs_prefix='EchoTrail.SearchTerm.' + searchTermPrefix + '.Field',
         outputs_key_field=searchTerm,
         outputs=result,
         raw_response=json.dumps(result),
@@ -245,8 +303,10 @@ def echotrail_searchterm_field_subsearch_command(client: Client, args: Dict[str,
     searchTerm = str(args['searchTerm'])
     searchTermPrefix = searchTerm.replace('.', '_')
     field = str(args['field'])
+    fieldPrefix = field.replace('.', '_')
     subsearch = str(args['subsearch'])
-    subsearchPrefix = subsearch.replace('.', '_')
+    subsearchPrefix = str(args['subsearch']).replace('.', '_')
+    #  subsearchPrefix = subsearch.replace('.', '_')
 
     if (type(searchTerm) != str or type(field) != str or type(subsearch) != str):
         return_error(f"Failed to execute {'echotrail_searchterm_field_subsearch_command'} command. \
@@ -271,7 +331,7 @@ def echotrail_searchterm_field_subsearch_command(client: Client, args: Dict[str,
             readable_out += "No results found."
 
         return CommandResults(
-            outputs_prefix='EchoTrail.Field.' + searchTermPrefix + '.SubSearch.' + subsearchPrefix,
+            outputs_prefix='EchoTrail.SearchTerm.' + searchTermPrefix + '.Field.' + fieldPrefix + '.SubSearch.' + subsearchPrefix,
             outputs_key_field=searchTerm,
             readable_output=readable_out,
             outputs=result,

@@ -22,6 +22,10 @@ configuration:
   name: cache
   required: false
   type: 8
+- display: Hours to Cache
+  name: cache_hours
+  required: false
+  type: 0
 - display: Record Execution
   name: record_execution
   type: 8
