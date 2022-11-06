@@ -41,6 +41,7 @@ script:
     - name: searchTerm
       description: 'searchTerm must be one of: Windows filename with extension (i.e. svchost.exe), SHA256 Hash, MD5 Hash'
       deprecated: false
+      required: true
     outputs:
     - contextPath: EchoTrail.SearchTerm
       description: "The search-term literal"
@@ -51,9 +52,11 @@ script:
     - name: searchTerm
       description: 'searchTerm must be one of: Windows filename with extension (i.e. svchost.exe), SHA256 Hash, MD5 Hash'
       deprecated: false
+      required: true
     - name: field
       description: 'field must be one of: description, rank, host_prev, eps, parents, children, grandparents, hashes, paths, network, intel'
       deprecated: false
+      required: true
     outputs:
     - contextPath: EchoTrail.SearchTerm.Field
       description: "The field keyword"
@@ -64,12 +67,15 @@ script:
     - name: searchTerm
       description: 'searchTerm must be one of: Windows filename with extension (i.e. svchost.exe), SHA256 Hash, MD5 Hash'
       deprecated: false
+      required: true
     - name: field
       description: 'field must be one of: parents, children, grandparents, hashes, paths to be subsearched.'
       deprecated: false
+      required: true
     - name: subsearch
       description: 'The subsearch field keyword'
       deprecated: false
+      required: true
     outputs:
     - contextPath: EchoTrail.SearchTerm.Field.SubSearch
       description: "The subsearch field subsearch keyword"
