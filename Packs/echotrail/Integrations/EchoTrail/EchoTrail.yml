@@ -35,6 +35,12 @@ display: EchoTrail
 image:
 script:
   commands:
+  - name: 'echotrail-print-integration-cache'
+    description: Print current state of integration cache.
+    outputs:
+    - contextPath: EchoTrail.Cache
+      description: "The current value of integration cache"
+      type: String
   - name: 'echotrail-searchterm'
     description: Get a full summary of the requested filename or hash. The summary will contain similar information to what can be found in a search on our website.
     arguments:

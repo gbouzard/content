@@ -12,6 +12,7 @@ import inspect
 from datetime import datetime
 import json
 import urllib3
+import hashlib
 import ast
 from typing import Dict, Any
 
@@ -32,11 +33,44 @@ class ExecutionProfile:
         self.hostname = kwargs['hostname']
         self.parent_image = kwargs['parent_image']
         self.grandparent_image = kwargs['grandparent_image']
-        self.hash = kwargs['hash']
+        self.ehash = kwargs['ehash']
         self.parent_hash = kwargs['parent_hash']
         self.commandline = kwargs['commandline']
         self.environment = kwargs['environment']
         self.record_execution = kwargs['record_execution']
+
+    def get_image(self):
+        return str(self.image)
+
+    def get_children(self):
+        return self.children
+
+    def get_network_ports(self):
+        return self.get_network_ports
+
+    def get_hostname(self):
+        return self.get_hostname
+
+    def get_parent_image(self):
+        return self.parent_image
+
+    def get_grandparent_image(self):
+        return self.grandparent_image
+
+    def get_ehash(self):
+        return self.ehash
+
+    def get_parent_hash(self):
+        return self.parent_hash
+
+    def get_commandline(self):
+        return self.commandline
+
+    def get_environment(self):
+        return self.environment
+
+    def get_record_execution(self):
+        return self.record_execution
 
 
 ''' CLIENT CLASS '''
@@ -52,12 +86,20 @@ class Client(BaseClient):
     For this  implementation, no special attributes defined
     """
 
-    def __is_expired_cache_entry(self, **kwargs):
+    def __is_expired_cache_entry__(self, **kwargs):
         """
         Assumes client code only calls this function when cache entry exists...
         """
-        calling_method = inspect.stack()[1][3]
-        cache_hours = demisto.getParam('cache_hours')
+        if 'calling_method' in kwargs:
+            calling_method = kwargs['calling_method']
+        else:
+            calling_method = inspect.stack()[1][3]
+        
+        if 'cache_hours' in kwargs:
+            cache_hours = kwargs['cache_hours']
+        else:
+            cache_hours = demisto.getParam('cache_hours')
+            
         try:
             cache_hours = int(cache_hours)
             if cache_hours <= 0:
@@ -114,7 +156,7 @@ class Client(BaseClient):
                 return False
         elif 'echotrail_score' == calling_method:
             integration_context = get_integration_context()
-            cache_timestamp = integration_context['scores'][kwargs['score_hash']]['timestamp']
+            cache_timestamp = datetime.strptime(integration_context['scores'][kwargs['score_hash']]['timestamp'], DATE_FORMAT)
             if cache_timestamp and ((cache_timestamp - now).total_seconds() > NUMBER_OF_SECONDS):
                 integration_context['scores'].pop(kwargs['score_hash'])
                 return True
@@ -123,63 +165,97 @@ class Client(BaseClient):
 
     def __cache_response(self, **kwargs):
         time = datetime.now()
+        integration_context: Dict = get_integration_context()
         if kwargs['cache_type'] == 'searchTerm':
-            integration_context_to_set = {"searchTerms": {
-                kwargs['search_term']: {
+            if 'searchTerms' not in integration_context:
+                integration_context.update({"searchTerms": {}})
+                integration_context['searchTerms'].update({kwargs['search_term']: {
                     "timestamp": time.strftime(DATE_FORMAT),
                     "results": str(kwargs['resp'])
-                }
-            }}
+                }})
+                set_integration_context(integration_context)
+            else:
+                integration_context['searchTerms'].update({kwargs['search_term']: {
+                    "timestamp": time.strftime(DATE_FORMAT),
+                    "results": str(kwargs['resp'])
+                }})
+                set_integration_context(integration_context)
             # rsort cache
         elif kwargs['cache_type'] == 'fields':
             integration_context_to_set = {"fields": {
                 kwargs['search_term']: {
-                    str(kwargs['field']): {
-                        "timestamp": time.strftime(DATE_FORMAT),
+                    str(kwargs['field']): {  # type: ignore
+                        "timestamp": str(time.strftime(DATE_FORMAT)),
                         "results": str(kwargs['resp'])
                     }
                 }
             }}
+            set_integration_context(integration_context_to_set)
             # rsort cache
         elif kwargs['cache_type'] == 'subsearches':
-            integration_context_to_set = {"subsearches": {
-                kwargs['search_term']: {
-                    str(kwargs['field']): {
-                        kwargs['subsearch']: {
-                            "timestamp": time.strftime(DATE_FORMAT),
-                            "results": str(kwargs['resp'])
+            integration_context_to_set = {
+                "subsearches": {
+                    kwargs['search_term']: {
+                        kwargs['field']: {  # type: ignore
+                            kwargs['subsearch']: {
+                                "timestamp": time.strftime(DATE_FORMAT),
+                                "results": str(kwargs['resp'])
+                            }
                         }
                     }
                 }
-            }}
+            }
+            set_integration_context(integration_context_to_set)
+            integration_context: Dict = get_integration_context()
             # rsort cache
         elif kwargs['cache_type'] == 'score':
             integration_context_to_set = {"scores": {
-                str(kwargs['ehash']) : {
+                str(kwargs['score_uid']): {
                     "timestamp": time.strftime(DATE_FORMAT),
                     "results": str(kwargs['resp'])
                 }
             }}
+            set_integration_context(integration_context_to_set)
+            integration_context: Dict = get_integration_context()
             # rsort cache
-        set_integration_context(integration_context_to_set)
+        # set_integration_context(integration_context_to_set)
+        
+    def __get_score_uid__(self, payload: ExecutionProfile):
+        hash_list = (str(payload.get_image()) + str(payload.get_hostname()) + str(payload.get_parent_image())
+                     + str(payload.get_grandparent_image()) + str(payload.get_ehash()) + str(payload.get_parent_hash()) + str(payload.get_commandline())
+                     + str(payload.get_children()) + str(payload.get_network_ports()))
+        return hashlib.sha256(hash_list.encode('utf-8')).hexdigest()
 
-    """
-    def __cache_clean(self, cache_key):
-        NUMBER_OF_SECONDS = cache_hours * 3600
-        integration_context = get_integration_context()
-        now = datetime.now()
-        if cache_key == "searchTerms":
-            # LIFO, check first cache entry
-            integration_context_searchTerms_keys = list(integration_context['searchTerms'].keys())
-            oldest_entry = datetime.strptime(integration_context_searchTerms_keys[0]['timestamp'], DATE_FORMAT)
-            if (oldest_entry - now).total_seconds() > NUMBER_OF_SECONDS:
-                # First cache entry is expired, pop it
-                integration_context['searchTerms'].pop(integration_context_searchTerms_keys[0])
-                for i in range(1, len(integration_context_searchTerm_keys)):
-                    timestamp = x
-                    if (timestamp - now).total_seconds() > NUMBER_OF_SECONDS:
-                        integration_context['searchTerms']
-    """
+    def __score_cached__(self, payload: ExecutionProfile):
+        score_uid = self.__get_score_uid__(payload)
+        try:
+            integration_context: Dict = get_integration_context()
+            #  Check if cached entry is expired, cleaning up other expried cached entries as we go
+            scoreKeys = integration_context['scores'].keys()
+            cached = False
+            cached_key = ''
+            for s in scoreKeys:
+                if s == score_uid:
+                    # return cached entry
+                    demisto.info('Using cached entry')  # TODO: remove in production
+                    cached = True
+                    cached_key = s
+                    break
+            if cached is True:
+                expired = self.__is_expired_cache_entry__(score_hash=cached_key)
+                if expired is True:
+                    #  Remove expired entry from cache
+                    integration_context['scores'].pop(cached_key)
+                    return False
+                else:
+                    demisto.info('Using cached entry')
+                    return True
+                    # return ast.literal_eval(integration_context['scores'][cached_key]['results'])
+                #  Cached entry is not expired, so use it
+            else:
+                return False
+        except Exception as e:
+            demisto.results(str(e))
 
     # TODO: ADD HERE THE FUNCTIONS TO INTERACT WITH YOUR PRODUCT API
     def echotrail_searchterm(self, searchTerm):
@@ -208,29 +284,32 @@ class Client(BaseClient):
         if bool(demisto.getParam('cache')) is False:
             response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
             return response
-        elif ('searchTerms' not in integration_context) or (searchTerm not in integration_context['searchTerms']):
-            #  SearchTerm not cached, so get response and cache it
-            response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
-            self.__cache_response(cache_type="searchTerm", search_term=searchTerm, resp=response)
-            return response
         else:
-            #  SearchTerm is cached
-            try:
-                #  Check if cached entry is expired
-                expired = self.__is_expired_cache_entry(search_term=searchTerm)
-                if expired is True:
-                    #  Remove expired entry from cache
-                    integration_context['searchTerms'].pop(searchTerm)
-                    #  Perform new query and cache result
-                    response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
-                    self.__cache_response(cache_type="searchTerm", search_term=searchTerm, resp=response)
-                    return response
-                else:
-                    #  Cached entry is not expired, so use it
-                    demisto.log('Using cached entry') #  TODO: remove line in production
-                    return ast.literal_eval(integration_context['searchTerms'][searchTerm]['results'])
-            except Exception as e:
-                demisto.results(str(e))
+            if ('searchTerms' not in integration_context):
+                integration_context.update({"searchTerms": {}})
+            if (searchTerm not in integration_context['searchTerms']):
+                #  SearchTerm not cached, so get response and cache it
+                response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
+                self.__cache_response(cache_type="searchTerm", search_term=searchTerm, resp=response)
+                return response
+            else:
+                #  SearchTerm is cached
+                try:
+                    #  Check if cached entry is expired
+                    expired = self.__is_expired_cache_entry__(search_term=searchTerm)
+                    if expired is True:
+                        #  Remove expired entry from cache
+                        integration_context['searchTerms'].pop(searchTerm)
+                        #  Perform new query and cache result
+                        response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
+                        self.__cache_response(cache_type="searchTerm", search_term=searchTerm, resp=response)
+                        return response
+                    else:
+                        #  Cached entry is not expired, so use it
+                        demisto.info('Using cached entry')  # TODO: remove line in production
+                        return ast.literal_eval(integration_context['searchTerms'][searchTerm]['results'])
+                except Exception as e:
+                    demisto.results(str(e))
 
     def echotrail_searchterm_field(self, searchTerm, field):
         """
@@ -258,8 +337,8 @@ class Client(BaseClient):
                 response = self._http_request("GET", "v1/private/insights/{}/{}".format(searchTerm, field))
                 return response
             elif ('fields' not in integration_context) or \
-                (searchTerm not in integration_context['fields']) or \
-                (field not in integration_context['fields'][searchTerm]):
+                 (searchTerm not in integration_context['fields']) or \
+                 (field not in integration_context['fields'][searchTerm]):
                 #  Field not cached, so get response and cache it
                 response = self._http_request("GET", "v1/private/insights/{}/{}".format(searchTerm, field))
                 self.__cache_response(cache_type="fields", search_term=searchTerm, field=field, resp=response)
@@ -268,7 +347,7 @@ class Client(BaseClient):
                 #  Field is cached
                 try:
                     #  Check if cached entry is expired
-                    expired = self.__is_expired_cache_entry(search_term=searchTerm, field=field)
+                    expired = self.__is_expired_cache_entry__(search_term=searchTerm, field=field)
                     if expired is True:
                         #  Remove expired entry from cache
                         integration_context['fields'][searchTerm].pop(field)
@@ -276,7 +355,7 @@ class Client(BaseClient):
                             integration_context['fields'].pop(searchTerm)
                     else:
                         #  Cached entry is not expired, so use it
-                        demisto.log('Using cached entry') #  TODO: remove line in production
+                        demisto.info('Using cached entry')  # TODO: remove line in production
                         return ast.literal_eval(integration_context['fields'][searchTerm][field]['results'])
                 except Exception as e:
                     demisto.results(str(e))
@@ -311,19 +390,20 @@ class Client(BaseClient):
             else:
                 # Cache parameter is enabled, now check if cach entry exists
                 if ('subsearches' not in integration_context) or \
-                (searchTerm not in integration_context['subsearches']) or \
-                (field not in integration_context['subsearches'][searchTerm]) or \
-                (subsearch not in integration_context['subsearches'][searchTerm][field]):
+                   (searchTerm not in integration_context['subsearches']) or \
+                   (field not in integration_context['subsearches'][searchTerm]) or \
+                   (subsearch not in integration_context['subsearches'][searchTerm][field]):
                     #  Subsearch is not cached, get response and cache it
                     response = self._http_request("GET", "v1/private/insights/{}/{}/{}".format(searchTerm, field, subsearch))
-                    self.__cache_response(cache_type="subsearches", search_term=searchTerm, field=field, subsearch=subsearch, resp=response)
+                    self.__cache_response(cache_type="subsearches", search_term=searchTerm, field=field, subsearch=subsearch,
+                                          resp=response)
                     return response
                 else:
                     #  Field is cached
                     try:
                         #  Check if cached entry is expired
                         # HERE
-                        expired = self.__is_expired_cache_entry(search_term=searchTerm, field=field, subsearch=subsearch)
+                        expired = self.__is_expired_cache_entry__(search_term=searchTerm, field=field, subsearch=subsearch)
                         if expired is True:
                             #  Remove expired entry from cache
                             integration_context['subsearches'][searchTerm].pop(field)
@@ -331,8 +411,7 @@ class Client(BaseClient):
                                 integration_context['subsearches'].pop(searchTerm)
                         else:
                             #  Cached entry is not expired, so use it
-                            demisto.log("Using cached entry") #  TODO: remove in production
-
+                            demisto.info("Using cached entry")  # TODO: remove in production
                             return ast.literal_eval(integration_context['subsearches'][searchTerm][field][subsearch]['results'])
                     except Exception as e:
                         demisto.results(str(e))
@@ -370,7 +449,7 @@ class Client(BaseClient):
                 "hostname": hostname,
                 "parent_image": parent_image,
                 "grandparent_image": grandparent_image,
-                "hash": ehash,
+                "ehash": ehash,
                 "parent_hash": parent_hash,
                 "commandline": commandline,
                 "children": children,
@@ -378,61 +457,23 @@ class Client(BaseClient):
                 "environment": environment,
                 "record_execution": False
             }
+            execution_profile = ExecutionProfile(image=image, children=children, network_ports=network_ports, hostname=hostname,
+                                                 parent_image=parent_image, grandparent_image=grandparent_image, ehash=ehash,
+                                                 parent_hash=parent_hash, commandline=commandline, environment=environment,
+                                                 record_execution=record_execution)
 
-            integration_context: Dict = get_integration_context()
-            #  Check if cache parameter is disabled
-            if (bool(demisto.getParam('cache')) is False):
-                if children is None:
-                    children = []
-                if network_ports is None:
-                    network_ports = []
-
-                response = self._http_request(method="POST", url_suffix="score", data=json.dumps(payload))
-                return response
+            #  Check if cached
+            if self.__score_cached__(execution_profile):
+                #  Get cached results and return them
+                tmp_score_uid = self.__get_score_uid__(execution_profile)
+                integration_context: Dict = get_integration_context()
+                return ast.literal_eval(integration_context['scores'][tmp_score_uid]['results'])
             else:
-                hash_list = image + str(hostname) + str(parent_image) + str(grandparent_image) + str(ehash) + str(parent_hash) + str(commandline) + str(children) + str(network_ports) + str(environment) + str(record_execution)
-                ehash=str(hash(str(hash_list)))
-                if ('scores' not in integration_context):
-                    #  No score cached, get response and cache it
-                    if children is None:
-                        children = []
-                    if network_ports is None:
-                        network_ports = []
-
-                    response = self._http_request(method="POST", url_suffix="score", data=json.dumps(payload))
-                    self.__cache_response(cache_type="score", ehash=ehash, resp=response)
-                    return response
-                else:
-                    #  Score might be cached
-                    try:
-                        #  Check if cached entry is expired, cleaning up other expried cached entries as we go
-                        scoreKeys = integration_context['scores'].keys()
-                        cached = False
-                        cached_request_hash = ''
-                        for s in scoreKeys:
-                            if s == ehash:
-                                # return cached entry
-                                demisto.log('Using cached entry') #  TODO: remove in production
-                                cached = True
-                                cached_request_hash = s
-                                break
-                            else:
-                                print(s + ":" + ehash)
-                        if cached is True:
-                            expired = self.__is_expired_cache_entry(score_hash=cached_request_hash)
-                            if expired is True:
-                                #  Remove expired entry from cache
-                                integration_context['scores'].pop(cached_request_hash)
-                            else:
-                                demisto.log('Using cached entry')
-                                return ast.literal_eval(integration_context['scores'][ehash]['results'])
-                            #  Cached entry is not expired, so use it
-                        else:
-                            response = self._http_request(method="POST", url_suffix="score", data=json.dumps(payload))
-                            self.__cache_response(cache_type="score", ehash=ehash, resp=response)
-                            return response
-                    except Exception as e:
-                        demisto.results(str(e))
+                # Get response and cache it
+                tmp_score_uid = self.__get_score_uid__(execution_profile)
+                response = self._http_request(method="POST", url_suffix="score", data=json.dumps(payload))
+                self.__cache_response(cache_type="score", score_uid=tmp_score_uid, resp=response)
+                return response
         except Exception as e:
             return_error(f'Failed to execute {demisto.command()} command. Error: {str(e)}')
 
@@ -550,7 +591,7 @@ def echotrail_score_command(client: Client, execution_profile: ExecutionProfile)
     image = execution_profile.image
     parent_image = execution_profile.parent_image
     grandparent_image = execution_profile.grandparent_image
-    hash = execution_profile.hash  # type: str
+    ehash = execution_profile.ehash  # type: str
     parent_hash = execution_profile.parent_hash
     commandline = execution_profile.commandline
     children = execution_profile.children
@@ -558,22 +599,26 @@ def echotrail_score_command(client: Client, execution_profile: ExecutionProfile)
     environment = execution_profile.environment
     record_execution = execution_profile.record_execution
 
-    try:
-        result = client.echotrail_score(image, hostname, parent_image, grandparent_image, hash, parent_hash, commandline,
-                                        children, network_ports, environment, record_execution)
-        return CommandResults(
-            outputs_prefix='EchoTrail.Score',
-            outputs_key_field='' + image,
-            outputs=result,
-            raw_response=json.dumps(result),
-            ignore_auto_extract=True
-        )
-    except Exception as e:
-        demisto.error("Failed to execute 'echotrail_score_command' command. Error: {}", {str(e)})
-        return CommandResults(
-            outputs_prefix=None,
-            outputs=result,
-        )
+    result = client.echotrail_score(image, hostname, parent_image, grandparent_image, ehash, parent_hash, commandline,
+                                    children, network_ports, environment, record_execution)
+    return CommandResults(
+        outputs_prefix='EchoTrail.Score',
+        outputs_key_field='' + image,
+        outputs=result,
+        raw_response=json.dumps(result),
+        ignore_auto_extract=True
+    )
+
+
+def echotrail_print_integration_cache_command(client: Client) -> CommandResults:
+    integration_cache: Dict = get_integration_context()
+    return CommandResults(
+        outputs_prefix='EchoTrail.Cache',
+        outputs_key_field='' + str(datetime.now()),
+        outputs=integration_cache,
+        raw_response=json.dumps(integration_cache),
+        ignore_auto_extract=True
+    )    
 
 
 def main() -> None:
@@ -623,6 +668,8 @@ def main() -> None:
                                                 record_execution=args.get('record_execution')
                                                 )  # type: ExecutionProfile
             result = echotrail_score_command(client, executionProfile)
+        elif command == 'echotrail-print-integration-cache':
+            result = echotrail_print_integration_cache_command(client)
             #  raise NotImplementedError(f'Command {command} is not implemented')
         # Log exceptions and return errors
         return_results(result)
