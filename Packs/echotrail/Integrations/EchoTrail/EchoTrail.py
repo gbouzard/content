@@ -94,12 +94,12 @@ class Client(BaseClient):
             calling_method = kwargs['calling_method']
         else:
             calling_method = inspect.stack()[1][3]
-        
+
         if 'cache_hours' in kwargs:
             cache_hours = kwargs['cache_hours']
         else:
             cache_hours = demisto.getParam('cache_hours')
-            
+
         try:
             cache_hours = int(cache_hours)
             if cache_hours <= 0:
@@ -110,23 +110,27 @@ class Client(BaseClient):
             return_error('Failed to execute command. Error: Hours to Cache in configuration parameters must be an integer.')
 
         now = datetime.now()
-        NUMBER_OF_SECONDS = cache_hours * 3600
+        NUMBER_OF_SECONDS = cache_hours * 3600  # 36 seconds in one hour
         if 'echotrail_searchterm' == calling_method:
             integration_context = get_integration_context()
             integration_context_searchterm_entry = integration_context['searchTerms'][kwargs['search_term']]
             timestamp = datetime.strptime(integration_context_searchterm_entry['timestamp'], DATE_FORMAT)
-            if (timestamp - now).total_seconds() > NUMBER_OF_SECONDS:
+            if abs((timestamp - now).total_seconds()) > NUMBER_OF_SECONDS:
                 #  cache entry is expired, so remove cache entry and return True
                 integration_context['searchTerms'].pop(kwargs['search_term'])
+                """print((timestamp - now).total_seconds())
+                print(NUMBER_OF_SECONDS)"""
                 return True
             else:
+                """print((timestamp - now).total_seconds())
+                print(NUMBER_OF_SECONDS)"""
                 return False
         elif 'echotrail_searchterm_field' == calling_method:
             integration_context = get_integration_context()
             integration_context_searchterm_entry = integration_context['fields'][kwargs['search_term']]
             integration_context_searchterm_field_entry = integration_context_searchterm_entry[kwargs['field']]
             timestamp = datetime.strptime(integration_context_searchterm_field_entry['timestamp'], DATE_FORMAT)
-            if timestamp and ((timestamp - now).total_seconds() > NUMBER_OF_SECONDS):
+            if timestamp and (abs((timestamp - now).total_seconds()) > NUMBER_OF_SECONDS):
                 #  remove cache entry
                 integration_context['fields'][kwargs['search_term']].pop(kwargs['field'])
                 #  remove entire searchTerm key iff it has no remaining '{{field}}' keys
@@ -142,9 +146,9 @@ class Client(BaseClient):
             integration_context_searchterm_field_entry = integration_context_searchterm_entry[kwargs['field']]
             integration_context_searchterm_field_subsearch_entry = integration_context_searchterm_field_entry[kwargs['subsearch']]
             timestamp = datetime.strptime(integration_context_searchterm_field_subsearch_entry['timestamp'], DATE_FORMAT)
-            if timestamp and ((timestamp - now).total_seconds() > NUMBER_OF_SECONDS):
+            if timestamp and (abs((timestamp - now).total_seconds()) > NUMBER_OF_SECONDS):
                 # remove cache entry
-                integration_context['subsearches'][kwargs['search_term']][kwargs['field'].pop(kwargs['subsearch'])]
+                integration_context['subsearches'][kwargs['search_term']][kwargs['field']].pop(kwargs['subsearch'])
                 # remove entire field key iff it has no remaining '{{subsearch}}' keys
                 if len(integration_context['subsearches'][kwargs['search_term']][kwargs['field']]) == 0:
                     integration_context['subsearches'][kwargs['search_term']].pop(kwargs['field'])
@@ -157,7 +161,7 @@ class Client(BaseClient):
         elif 'echotrail_score' == calling_method:
             integration_context = get_integration_context()
             cache_timestamp = datetime.strptime(integration_context['scores'][kwargs['score_hash']]['timestamp'], DATE_FORMAT)
-            if cache_timestamp and ((cache_timestamp - now).total_seconds() > NUMBER_OF_SECONDS):
+            if cache_timestamp and (abs((cache_timestamp - now).total_seconds()) > NUMBER_OF_SECONDS):
                 integration_context['scores'].pop(kwargs['score_hash'])
                 return True
             else:
@@ -181,19 +185,20 @@ class Client(BaseClient):
                 }})
                 set_integration_context(integration_context)
             # rsort cache
-        elif kwargs['cache_type'] == 'fields':
-            integration_context_to_set = {"fields": {
-                kwargs['search_term']: {
-                    str(kwargs['field']): {  # type: ignore
-                        "timestamp": str(time.strftime(DATE_FORMAT)),
-                        "results": str(kwargs['resp'])
-                    }
-                }
-            }}
-            set_integration_context(integration_context_to_set)
-            # rsort cache
+        elif kwargs['cache_type'] == 'fields':  # cache_type="fields", search_term=searchTerm, field=field, resp=response
+            try:
+                if 'fields' not in integration_context:
+                    integration_context.update({"fields": {}})
+                    integration_context['fields'].update({kwargs['search_term']: {}})
+                integration_context['fields'][kwargs['search_term']].update({kwargs['field']: {
+                    "timestamp": time.strftime(DATE_FORMAT),
+                    "results": str(kwargs['resp'][kwargs['field']])
+                }})
+                set_integration_context(integration_context)
+            except Exception as e:
+                return_results(str(e))
         elif kwargs['cache_type'] == 'subsearches':
-            integration_context_to_set = {
+            integration_context.update({
                 "subsearches": {
                     kwargs['search_term']: {
                         kwargs['field']: {  # type: ignore
@@ -204,25 +209,21 @@ class Client(BaseClient):
                         }
                     }
                 }
-            }
-            set_integration_context(integration_context_to_set)
-            integration_context: Dict = get_integration_context()
-            # rsort cache
+            })
+            set_integration_context(integration_context)
         elif kwargs['cache_type'] == 'score':
-            integration_context_to_set = {"scores": {
+            integration_context["scores"].update({
                 str(kwargs['score_uid']): {
                     "timestamp": time.strftime(DATE_FORMAT),
                     "results": str(kwargs['resp'])
                 }
-            }}
-            set_integration_context(integration_context_to_set)
-            integration_context: Dict = get_integration_context()
-            # rsort cache
-        # set_integration_context(integration_context_to_set)
-        
+            })
+            set_integration_context(integration_context)
+
     def __get_score_uid__(self, payload: ExecutionProfile):
         hash_list = (str(payload.get_image()) + str(payload.get_hostname()) + str(payload.get_parent_image())
-                     + str(payload.get_grandparent_image()) + str(payload.get_ehash()) + str(payload.get_parent_hash()) + str(payload.get_commandline())
+                     + str(payload.get_grandparent_image()) + str(payload.get_ehash())
+                     + str(payload.get_parent_hash()) + str(payload.get_commandline())
                      + str(payload.get_children()) + str(payload.get_network_ports()))
         return hashlib.sha256(hash_list.encode('utf-8')).hexdigest()
 
@@ -231,13 +232,17 @@ class Client(BaseClient):
         try:
             integration_context: Dict = get_integration_context()
             #  Check if cached entry is expired, cleaning up other expried cached entries as we go
+            if 'scores' not in integration_context:
+                integration_context.update({'scores': {}})
+                set_integration_context(integration_context)
+                return False
             scoreKeys = integration_context['scores'].keys()
             cached = False
             cached_key = ''
             for s in scoreKeys:
                 if s == score_uid:
                     # return cached entry
-                    demisto.info('Using cached entry')  # TODO: remove in production
+                    # demisto.info('Using cached entry')  # TODO: remove in production
                     cached = True
                     cached_key = s
                     break
@@ -287,6 +292,7 @@ class Client(BaseClient):
         else:
             if ('searchTerms' not in integration_context):
                 integration_context.update({"searchTerms": {}})
+                set_integration_context(integration_context)
             if (searchTerm not in integration_context['searchTerms']):
                 #  SearchTerm not cached, so get response and cache it
                 response = self._http_request("GET", "v1/private/insights/{}".format(searchTerm))
@@ -332,17 +338,27 @@ class Client(BaseClient):
         if field in {'description', 'rank', 'host_prev', 'eps', 'parents', 'children',
                      'grandparents', 'hashes', 'paths', 'network', 'intel'}:
             integration_context: Dict = get_integration_context()
-            #  Check if cache parameter is enabled and check cache for field
+            #  Check if cache parameter is enabled
             if bool(demisto.getParam('cache')) is False:
                 response = self._http_request("GET", "v1/private/insights/{}/{}".format(searchTerm, field))
                 return response
-            elif ('fields' not in integration_context) or \
-                 (searchTerm not in integration_context['fields']) or \
-                 (field not in integration_context['fields'][searchTerm]):
-                #  Field not cached, so get response and cache it
-                response = self._http_request("GET", "v1/private/insights/{}/{}".format(searchTerm, field))
-                self.__cache_response(cache_type="fields", search_term=searchTerm, field=field, resp=response)
-                return response
+
+            # Check for cases where caching is enabled but entry is not cached
+            # No field searches have ever been cached
+            if ('fields' not in integration_context):
+                integration_context.update({"fields": {}})
+            # Field searches have been cached, but not for provided searchTerm
+            if (searchTerm not in integration_context['fields']):
+                integration_context['fields'].update({searchTerm: {}})
+            # The provided searchTerm has been cached, but for a different field
+            if field not in integration_context['fields'][searchTerm]:
+                try:
+                    integration_context['fields'][searchTerm].update({field: {}})
+                    response = self._http_request("GET", "v1/private/insights/{}/{}".format(searchTerm, field))
+                    self.__cache_response(cache_type="fields", search_term=searchTerm, field=field, resp=response)
+                    return response
+                except Exception as e:
+                    demisto.results(str(e))
             else:
                 #  Field is cached
                 try:
@@ -356,7 +372,11 @@ class Client(BaseClient):
                     else:
                         #  Cached entry is not expired, so use it
                         demisto.info('Using cached entry')  # TODO: remove line in production
-                        return ast.literal_eval(integration_context['fields'][searchTerm][field]['results'])
+                        r = ast.literal_eval(integration_context['fields'][searchTerm][field]['results'])
+                        # Define check for empty results function
+                        if r == []:
+                            r = {"response": "No results for " + searchTerm + "\'s " + field + "."}
+                        return r
                 except Exception as e:
                     demisto.results(str(e))
         else:
@@ -534,7 +554,6 @@ def echotrail_searchterm_field_command(client: Client, args: Dict[str, Any]) -> 
     searchTerm = str(args['searchTerm'])
     searchTermPrefix = searchTerm.replace('.', '_')
     field = str(args['field'])
-    #  fieldPrefix = field.replace('.', '_')
     result = client.echotrail_searchterm_field(searchTerm, field)
     return CommandResults(
         outputs_prefix='EchoTrail.SearchTerm.' + searchTermPrefix + '.Field',
@@ -618,7 +637,7 @@ def echotrail_print_integration_cache_command(client: Client) -> CommandResults:
         outputs=integration_cache,
         raw_response=json.dumps(integration_cache),
         ignore_auto_extract=True
-    )    
+    )
 
 
 def main() -> None:
