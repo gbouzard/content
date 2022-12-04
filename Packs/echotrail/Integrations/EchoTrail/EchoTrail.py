@@ -255,7 +255,6 @@ class Client(BaseClient):
                 else:
                     demisto.info('Using cached entry')
                     return True
-                    # return ast.literal_eval(integration_context['scores'][cached_key]['results'])
                 #  Cached entry is not expired, so use it
             else:
                 return False
@@ -617,7 +616,8 @@ def echotrail_score_command(client: Client, execution_profile: ExecutionProfile)
     network_ports = execution_profile.network_ports
     environment = execution_profile.environment
     record_execution = execution_profile.record_execution
-
+    if client.__score_cached__(execution_profile):
+        record_execution = False
     result = client.echotrail_score(image, hostname, parent_image, grandparent_image, ehash, parent_hash, commandline,
                                     children, network_ports, environment, record_execution)
     return CommandResults(
